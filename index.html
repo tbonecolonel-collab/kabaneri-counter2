@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#111318">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="カバネリ">
+  <link rel="apple-touch-icon" href="assets/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  <title>カバネリカウンター</title>
+  <link rel="stylesheet" href="css/style.css?v=45">
+</head>
+<body>
+<header class="topbar">
+  <div>
+    <h1>カバネリカウンター</h1>
+    <div class="sub">実戦データ管理</div>
+  </div>
+  <div class="top-actions"><button class="icon-btn undo-btn" data-action="undo" aria-label="1つ戻る" title="1つ戻る">↶</button><button class="icon-btn" data-action="open-settings" aria-label="設定">⚙</button></div>
+</header>
+
+<main>
+  <nav class="tabs sticky-tabs">
+    <button class="tab active" data-page="normal">通常時</button>
+    <button class="tab" data-page="bonus">ボーナス</button>
+    <button class="tab" data-page="records">今までの記録</button>
+  </nav>
+
+  <div class="quick-dashboard">
+  <section class="common-games">
+    <div class="game-totals"><div><b>累計総ゲーム数</b><span id="totalGamesDisplay">0G</span></div><div><b>現在ゲーム数</b><span id="currentGamesDisplay">0G</span></div></div>
+    <div class="game-actions">
+      <button data-action="games-add" data-value="1">+1G</button>
+      <button data-action="games-add" data-value="10">+10G</button>
+      <button data-action="games-add" data-value="100">+100G</button>
+      <button data-action="games-input">直接入力</button>
+    </div>
+  </section>
+
+  <section class="common-bell">
+    <div>
+      <b>下段ベル</b>
+      <span id="bellRate">0 / 0G</span>
+    </div>
+    <div class="bell-actions">
+      <button class="small-btn" data-action="bell-minus">−</button>
+      <button class="bell-btn" data-action="bell-plus">＋</button>
+    </div>
+    <div class="bell-prob" id="bellProbText">確率 1/—</div>
+  </section>
+  </div>
+
+  <section id="page-normal" class="page active">
+    <div class="section-title"><h2>通常時</h2><span class="point">PTは各チャンス目別</span></div>
+
+    <div class="chance-grid" id="chanceGrid"></div>
+
+    <div class="card action-card">
+      <div class="card-title"><span>当選入力</span><small class="card-help">ここからCZ結果を記録</small></div>
+      <div class="three-col">
+        <button class="primary" data-action="cz-win" data-cz="無名">無名CZ当選</button>
+        <button class="primary" data-action="cz-win" data-cz="生駒">生駒CZ当選</button>
+        <button class="primary" data-action="period-cz">周期CZ</button>
+      </div>
+      <div class="muted">当選時にゲーム数・成功/失敗・ポイントを記録し、ポイントをリセットします。</div>
+    </div>
+
+    <div class="card sea-card">
+      <div class="card-title">海門レベル</div>
+      <div class="sea-grid">
+        <button data-action="sea-char">演出キャラ</button>
+        <button data-action="sea-stage">ステージ</button>
+        <button data-action="rinne">輪廻くじ</button>
+      </div>
+      <div class="sea-table-wrap"><div class="sea-table-head"><span>周期</span><span>海門Lv推測</span><span>情報</span></div><div id="seaTable" class="sea-table"></div></div>
+      <div class="prediction" id="seaPrediction">現在周期：不明</div>
+    </div>
+
+
+    <div class="card">
+      <div class="card-title">アイテムくじ</div>
+      <div id="itemButtons" class="image-grid"></div>
+      <div class="muted">タップした順番で記録。履歴では種類別に集計します。</div>
+    </div>
+
+    <details class="card fold-card"><summary>アイテム示唆を見る</summary><div id="itemPrediction" class="prediction fold-content">データ不足</div></details>
+    <details class="card fold-card"><summary>CZ・LIFE回避率を見る</summary><div id="czRates" class="stat-list fold-content"></div></details>
+    <div class="card prediction-card main-prediction"><div class="card-title">現在の設定推測</div><div id="normalPrediction" class="prediction">総合推測：データ不足</div></div>
+  </section>
+
+  <section id="page-bonus" class="page">
+    <div class="section-title"><h2>ボーナス</h2></div>
+
+    <div class="bonus-grid">
+    <div class="card">
+      <div class="card-title">キャラボイス</div>
+      <div id="voiceButtons" class="choice-grid"></div>
+      <div id="voiceStats" class="stat-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">キャラ紹介</div>
+      <div id="introButtons" class="choice-grid"></div>
+      <div id="introStats" class="stat-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">トロフィー</div>
+      <div id="trophyButtons" class="choice-grid"></div>
+      <div id="trophyStats" class="stat-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">ST終了画面</div>
+      <div id="endButtons" class="choice-grid"></div>
+      <div id="endStats" class="stat-list"></div>
+    </div>
+
+    </div>
+    <div class="card prediction-card main-prediction">
+      <div class="card-title">ボーナスからの設定推測</div>
+      <div id="bonusPrediction" class="prediction">データ不足</div>
+    </div>
+  </section>
+
+
+  <section id="page-records" class="page">
+    <div class="section-title"><h2>今までの記録</h2><span class="point">日付ごとに保存</span></div>
+    <div class="records-guide">全データリセット時に自動保存。日付を押すと詳細を開けます。</div>
+    <div id="pastRecords"></div>
+  </section>
+
+  <section class="bottom-actions">
+    <button data-action="history">履歴</button>
+    <button data-action="open-settings">画像・UI設定</button>
+    <button class="danger" data-action="reset">全データリセット</button>
+  </section>
+</main>
+
+<div id="modalRoot"></div>
+<div id="toast"></div>
+<script src="js/storage.js?v=44"></script>
+<script src="js/data.js?v=44"></script>
+<script src="js/app.js?v=44"></script>
+</body>
+</html>

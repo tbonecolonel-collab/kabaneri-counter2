@@ -1,0 +1,12 @@
+GitHub Pages 公開手順
+
+1. GitHubで新しいPublicリポジトリを作成（例: kabaneri-counter）
+2. このZIPを展開し、中身をリポジトリ直下へアップロード
+   ※ ZIPファイルそのものではなく index.html / js / css / assets 等をアップロード
+3. GitHub: Settings → Pages
+4. Source: Deploy from a branch
+5. Branch: main / (root) → Save
+6. 公開URL例: https://ユーザー名.github.io/kabaneri-counter/
+7. iPhoneのSafariで公開URLを開く → 共有 → ホーム画面に追加
+
+GitHub Pagesのサブディレクトリ公開に対応するため、アセット・manifest・Service Workerは相対パスで構成済みです。
