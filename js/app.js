@@ -513,12 +513,41 @@ document.addEventListener("click",e=>{
    if(b.dataset.action==='games-add'){pushUndo();state.totalGames+=Number(b.dataset.value)||0;saveState();render();return}
    if(b.dataset.action==='games-minus'){pushUndo();state.totalGames=Math.max(0,state.totalGames-1);saveState();render();return}
    if(b.dataset.action==='games-input'){
-     let inputValue=String(Math.max(0,Number(state.totalGames)||0));
-     const draw=()=>{const out=$("#totalGamesKeypadValue");if(out)out.textContent=(inputValue||"0")+"G"};
-     modalBase(`<h2>総ゲーム数</h2><div class="keypad-display" id="totalGamesKeypadValue">${inputValue}G</div><div class="number-keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-keypad-number="${n}">${n}</button>`).join("")}<button class="keypad-zero" data-keypad-number="0">0</button><button class="keypad-delete" data-keypad-delete>×</button></div><button class="primary modal-record-btn" id="modalSave">保存</button>`);
-     $$('#modalRoot [data-keypad-number]').forEach(k=>k.onclick=()=>{const n=k.dataset.keypadNumber;if(inputValue==='0')inputValue=n;else inputValue+=n;inputValue=inputValue.replace(/^0+(?=\d)/,'');draw()});
-     $('#modalRoot [data-keypad-delete]').onclick=()=>{inputValue=inputValue.slice(0,-1);draw()};
-     $("#modalSave").onclick=()=>{pushUndo();state.totalGames=Math.max(0,Number(inputValue)||0);state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));saveState();closeModal();render();toast("総ゲーム数を更新しました")};return}
+     let inputMode='current';
+     let values={
+       current:String(Math.max(0,Number(state.currentGames)||0)),
+       total:String(Math.max(0,Number(state.totalGames)||0))
+     };
+     const draw=()=>{
+       const out=$("#gamesKeypadValue");
+       const title=$("#gamesKeypadTitle");
+       if(out)out.textContent=(values[inputMode]||"0")+"G";
+       if(title)title.textContent=inputMode==='current'?"現在ゲーム数":"総ゲーム数";
+       $$('#modalRoot [data-game-input-mode]').forEach(x=>x.classList.toggle('selected',x.dataset.gameInputMode===inputMode));
+     };
+     modalBase(`<div class="game-input-top"><div class="game-input-switch"><button data-game-input-mode="current" class="selected">現在ゲーム数</button><button data-game-input-mode="total">総ゲーム数</button></div></div><h2 id="gamesKeypadTitle">現在ゲーム数</h2><div class="keypad-display" id="gamesKeypadValue">${values.current}G</div><div class="number-keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-keypad-number="${n}">${n}</button>`).join("")}<button class="keypad-zero" data-keypad-number="0">0</button><button class="keypad-delete" data-keypad-delete>×</button></div><button class="primary modal-record-btn" id="modalSave">保存</button>`);
+     $$('#modalRoot [data-game-input-mode]').forEach(x=>x.onclick=()=>{inputMode=x.dataset.gameInputMode;draw()});
+     $$('#modalRoot [data-keypad-number]').forEach(k=>k.onclick=()=>{const n=k.dataset.keypadNumber;let v=values[inputMode]||'';if(v==='0')v=n;else v+=n;values[inputMode]=v.replace(/^0+(?=\d)/,'');draw()});
+     $('#modalRoot [data-keypad-delete]').onclick=()=>{values[inputMode]=(values[inputMode]||'').slice(0,-1);draw()};
+     $("#modalSave").onclick=()=>{
+       pushUndo();
+       if(inputMode==='total'){
+         state.totalGames=Math.max(0,Number(values.total)||0);
+         state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+         toast("総ゲーム数を更新しました");
+       }else{
+         const current=Math.max(0,Number(values.current)||0);
+         if(current>state.totalGames){
+           state.totalGames=current;
+           state.gameBase=0;
+         }else{
+           state.gameBase=state.totalGames-current;
+         }
+         state.currentGames=current;
+         toast("現在ゲーム数を更新しました");
+       }
+       saveState();closeModal();render();
+     };return}
    if(b.dataset.action==='bell-plus'){pushUndo();state.bell.count++;saveState();render();return}
    if(b.dataset.action==='bell-minus'){pushUndo();state.bell.count=Math.max(0,state.bell.count-1);saveState();render();return}
    if(b.dataset.action==='cz-win'){openCz(b.dataset.cz);return}

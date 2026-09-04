@@ -425,3 +425,9 @@ button,.image-choice{-webkit-tap-highlight-color:transparent;touch-action:manipu
   -webkit-text-fill-color:transparent;
   text-shadow:none;
 }
+
+/* v55: current/total game keypad switch */
+.game-input-top{display:flex;justify-content:flex-start;margin:0 0 8px}
+.game-input-switch{display:inline-grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--card2);border:1px solid var(--border);border-radius:11px}
+.game-input-switch button{min-height:36px;padding:7px 10px;border-radius:8px;border:1px solid transparent;background:transparent;font-size:13px;font-weight:800;color:var(--text)}
+.game-input-switch button.selected{background:var(--accent);border-color:color-mix(in srgb,var(--accent) 65%,#fff);box-shadow:inset 0 1px 0 #ffffff22}
