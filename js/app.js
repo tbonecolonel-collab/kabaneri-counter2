@@ -110,7 +110,7 @@ function czPointHistoryHtml(czName, pointKey){
    const pt=Number(x.points?.[pointKey])||0;
    const raw=x.result||((x.success)?'成功':'失敗');
    const result=raw==='fail'?'失敗':raw;
-   const cls=result==='EP'?'is-ep':result==='駿城'?'is-shun':'is-fail';
+   const cls=(result==='EP'||result==='駿城⇒EP')?'is-ep':(result==='駿城'||result==='駿城⇒失敗')?'is-shun':'is-fail';
    return `${i?'<span class="cz-point-arrow">⇒</span>':''}<span class="cz-point-item"><b>${pt}</b><em class="${cls}">(${esc(result)})</em></span>`;
  }).join('')}</div>`;
 }
@@ -330,9 +330,66 @@ function openCz(kind){
  const lifeButtons=kind==="生駒"?`<div class="modal-section"><b>生駒CZ LIFE</b>${[3,2,1].map(l=>{const d=state.ikoma[l]||{attack:0,avoid:0};return `<div class="life-inline"><strong>LIFE ${l}</strong><button class="image-action-button" data-life="${l}" data-life-action="attack"><img src="${buttonImg("result:襲撃")}"><span>襲撃 ${d.attack}回</span></button><button class="image-action-button" data-life="${l}" data-life-action="avoid"><img src="${buttonImg("result:回避")}"><span>回避 ${d.avoid}回</span></button></div>`}).join("")}</div>`:"";
  modalBase(`<h2>${kind}CZ当選</h2><div class="prediction">現在ゲーム数：<strong>${state.currentGames}G</strong><br>無名 ${pts.無名}pt / 生駒 ${pts.生駒}pt / カバネ ${pts.カバネ}pt</div><div class="modal-section"><b>結果</b><div class="three-col result-buttons">${["失敗","駿城","EP"].map(x=>`<button class="image-result-button" data-cz-result="${x}"><img src="${buttonImg("result:"+x)}"><span>${x}</span></button>`).join("")}</div></div>${lifeButtons}<button class="primary modal-record-btn" id="czRecord">記録する</button>`);
  let result="";
+ const hitGames=Math.max(0,Number(state.currentGames)||0);
+ const hitCycle=state.sea.cycle;
+ const finishSimple=(finalResult)=>{
+   pushUndo();
+   const success=finalResult!=="失敗";
+   state.cz[kind].win++;
+   if(success)state.cz[kind].success++;
+   state.czHistory.unshift({cz:kind+"CZ",games:hitGames,success,result:finalResult,points:pts,elapsedGames:Math.max(0,state.totalGames-(state.lastBonusTotalGames||0)),date:new Date().toLocaleString('ja-JP')});
+   state.chancePts[kind]=0;
+   if(success){
+     recordBonusResult(finalResult,hitGames,hitCycle,kind+"CZ→"+finalResult);
+     if(finalResult==="EP")state.chancePts.カバネ=0;
+   }
+   saveState();closeModal();render();toast(`${kind}CZ ${finalResult}を記録しました`);
+ };
+ const finishShun=(afterResult)=>{
+   pushUndo();
+   // 無名CZ・生駒CZは駿城に当選した時点でCZ成功。
+   // 駿城⇒EP / 駿城⇒失敗のどちらも、CZ1回・成功1回として集計する。
+   state.cz[kind].win++;
+   state.cz[kind].success++;
+   const shunToEp=afterResult==='EP';
+   state.czHistory.unshift({
+     cz:kind+"CZ",
+     games:hitGames,
+     success:true,
+     result:shunToEp?'駿城⇒EP':'駿城⇒失敗',
+     points:pts,
+     elapsedGames:Math.max(0,state.totalGames-(state.lastBonusTotalGames||0)),
+     date:new Date().toLocaleString('ja-JP')
+   });
+   state.chancePts[kind]=0;
+
+   // 駿城ボーナス自体の当選はボーナス記録に残す。
+   recordBonusResult('駿城',hitGames,hitCycle,kind+'CZ→駿城');
+
+   // 駿城ボーナス消化分として必ず22G加算。
+   state.totalGames+=22;
+   state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+
+   if(shunToEp){
+     const epGames=Math.max(0,Number(state.currentGames)||0);
+     recordBonusResult('EP',epGames,hitCycle,'駿城→EP');
+     state.chancePts.カバネ=0;
+     saveState();closeModal();render();
+     toast(`${kind}CZ 駿城 ${hitGames}G → EP ${epGames}G をCZ1回・成功1回として記録しました`);
+   }else{
+     // 無名CZ・生駒CZ経由の駿城失敗では周期は進めない。
+     saveState();closeModal();render();
+     toast(`${kind}CZ 駿城 ${hitGames}G → 失敗（+22G）を1回のCZ失敗として記録しました`);
+   }
+ };
+ const openShunFollowup=()=>{
+   const projected=hitGames+22;
+   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">${kind}CZから駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に22G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：駿城終了として記録 / EP：+22G後のゲーム数でEP当選として周期をリセット</p>`);
+   $$('#modalRoot [data-shun-follow]').forEach(b=>b.onclick=()=>finishShun(b.dataset.shunFollow));
+ };
  $$('[data-cz-result]').forEach(b=>b.onclick=()=>{result=b.dataset.czResult;$$('[data-cz-result]').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')});
  $$('[data-life][data-life-action]').forEach(b=>b.onclick=()=>{const l=b.dataset.life,a=b.dataset.lifeAction;pushUndo();state.ikoma[l][a]++;saveState();const d=state.ikoma[l];b.querySelector('span').textContent=(a==='attack'?'襲撃 ':'回避 ')+(d[a]||0)+'回';});
- $('#czRecord').onclick=()=>{if(!result)return toast('結果を選択してください');pushUndo();const games=Math.max(0,Number(state.currentGames)||0);const success=result!=="失敗";state.cz[kind].win++;if(success)state.cz[kind].success++;state.czHistory.unshift({cz:kind+"CZ",games,success,result,points:pts,elapsedGames:Math.max(0,state.totalGames-(state.lastBonusTotalGames||0)),date:new Date().toLocaleString('ja-JP')});state.chancePts[kind]=0;if(success){recordBonusResult(result,games,state.sea.cycle,kind+"CZ→"+result);if(result==="EP")state.chancePts.カバネ=0;else state.chancePts.カバネ=state.chancePts.カバネ;}saveState();closeModal();render();toast(`${kind}CZ ${result}を記録しました`)}
+ $('#czRecord').onclick=()=>{if(!result)return toast('結果を選択してください');if(result==='駿城')return openShunFollowup();finishSimple(result)};
 }
 function openPeriodCZ(){
  const pts=state.chancePts.カバネ||0;
