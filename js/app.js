@@ -285,7 +285,7 @@ function finalSetting(){
  const max=Math.max(...Object.values(scores));const tops=Object.entries(scores).filter(([,v])=>v===max).map(([s])=>s);return {evidence,candidates:candidates.length?candidates:[1,2,3,4,5,6],scores,tops};
 }
 function normalPredict(){
- const f=finalSetting();const lines=f.evidence.map((e,i)=>`<div class="setting-item"><span>${i+1}. ${e===f.evidence[3]?e.text:esc(e.text)}</span><b>${stars(levelRank[e.level]||0)}</b><em>${e.level}</em></div>`).join("");
+ const f=finalSetting();const lines=f.evidence.map((e,i)=>`<div class="setting-item"><span>${i+1}. ${e===f.evidence[3]?e.text:esc(e.text)}</span><b>${stars(levelRank[e.level]||0)}</b><em class="setting-level level-${e.level}">${e.level}</em></div>`).join("");
  return `<div class="final-setting"><strong>総合設定予想：${f.tops.map(x=>`設定${x}`).join(" or ")}</strong><small>優先順位：確定 ＞ 濃厚 ＞ 期待高 ＞ 期待度UP ＞ 参考</small></div>${lines}`;
 }
 function bonusPredict(){return normalPredict()}
@@ -387,7 +387,11 @@ function openCz(kind){
    modalBase(`<h2>駿城ボーナス</h2><div class="prediction">${kind}CZから駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に22G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：駿城終了として記録 / EP：+22G後のゲーム数でEP当選として周期をリセット</p>`);
    $$('#modalRoot [data-shun-follow]').forEach(b=>b.onclick=()=>finishShun(b.dataset.shunFollow));
  };
- $$('[data-cz-result]').forEach(b=>b.onclick=()=>{result=b.dataset.czResult;$$('[data-cz-result]').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')});
+ $$('[data-cz-result]').forEach(b=>b.onclick=()=>{
+   result=b.dataset.czResult;
+   if(result==='駿城'){openShunFollowup();return;}
+   $$('[data-cz-result]').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');
+ });
  $$('[data-life][data-life-action]').forEach(b=>b.onclick=()=>{const l=b.dataset.life,a=b.dataset.lifeAction;pushUndo();state.ikoma[l][a]++;saveState();const d=state.ikoma[l];b.querySelector('span').textContent=(a==='attack'?'襲撃 ':'回避 ')+(d[a]||0)+'回';});
  $('#czRecord').onclick=()=>{if(!result)return toast('結果を選択してください');if(result==='駿城')return openShunFollowup();finishSimple(result)};
 }
@@ -416,13 +420,23 @@ function openPeriodCZ(){
    state.cycles[cyc].total++;
    state.cycles[cyc].bonus++;
    state.cycleBonuses[cyc].駿城++;
-   state.czHistory.unshift({cz:'周期CZ',games:hitGames,success:true,result:'駿城',cycle:cyc,points:{カバネ:pts},date:new Date().toLocaleString('ja-JP')});
    state.chancePts.カバネ=0;
    recordBonusResult('駿城',hitGames,cyc,'周期CZ→駿城');
 
    // 駿城ボーナス消化分として必ず22G加算。
    state.totalGames+=22;
    state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+
+   // 周期CZのポイント履歴は駿城後の最終結果まで1つにまとめて表示する。
+   state.czHistory.unshift({
+     cz:'周期CZ',
+     games:hitGames,
+     success:true,
+     result:afterResult==='EP'?'駿城⇒EP':'駿城⇒失敗',
+     cycle:cyc,
+     points:{カバネ:pts},
+     date:new Date().toLocaleString('ja-JP')
+   });
 
    if(afterResult==='EP'){
      const epGames=Math.max(0,Number(state.currentGames)||0);
