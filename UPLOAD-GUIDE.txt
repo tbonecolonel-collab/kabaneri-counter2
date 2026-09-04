@@ -1,4 +1,4 @@
-GitHub Pages 完全版 v46
+GitHub Pages 完全版 v47
 
 重要: ZIPファイル自体ではなく、このZIPを展開した「中身全部」をGitHubリポジトリ直下へアップロードしてください。
 
