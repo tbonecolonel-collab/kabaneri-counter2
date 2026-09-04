@@ -334,7 +334,66 @@ function openCz(kind){
  $$('[data-life][data-life-action]').forEach(b=>b.onclick=()=>{const l=b.dataset.life,a=b.dataset.lifeAction;pushUndo();state.ikoma[l][a]++;saveState();const d=state.ikoma[l];b.querySelector('span').textContent=(a==='attack'?'襲撃 ':'回避 ')+(d[a]||0)+'回';});
  $('#czRecord').onclick=()=>{if(!result)return toast('結果を選択してください');pushUndo();const games=Math.max(0,Number(state.currentGames)||0);const success=result!=="失敗";state.cz[kind].win++;if(success)state.cz[kind].success++;state.czHistory.unshift({cz:kind+"CZ",games,success,result,points:pts,elapsedGames:Math.max(0,state.totalGames-(state.lastBonusTotalGames||0)),date:new Date().toLocaleString('ja-JP')});state.chancePts[kind]=0;if(success){recordBonusResult(result,games,state.sea.cycle,kind+"CZ→"+result);if(result==="EP")state.chancePts.カバネ=0;else state.chancePts.カバネ=state.chancePts.カバネ;}saveState();closeModal();render();toast(`${kind}CZ ${result}を記録しました`)}
 }
-function openPeriodCZ(){const pts=state.chancePts.カバネ||0;modalBase(`<h2>周期CZ</h2><div class="prediction">現在周期：<strong>${state.sea.cycle}周期</strong><br>当選時カバネPT：<strong>${pts}pt</strong></div><div class="three-col result-buttons"><button class="image-result-button" data-period-result="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-period-result="駿城"><img src="${buttonImg("result:駿城")}"><span>駿城</span></button><button class="image-result-button" data-period-result="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div>`);let result=null;$$('#modalRoot [data-period-result]').forEach(b=>b.onclick=()=>{result=b.dataset.periodResult;$$('#modalRoot [data-period-result]').forEach(x=>x.classList.remove('selected'));b.classList.add('selected')});const modal=$('#modalRoot .modal');modal.insertAdjacentHTML('beforeend','<button class="primary modal-record-btn" id="periodRecord">記録する</button>');$('#periodRecord').onclick=()=>{if(!result)return toast('結果を選択してください');pushUndo();const cyc=state.sea.cycle;const success=result!=="fail";state.cycles[cyc].total++;if(success){state.cycles[cyc].bonus++;state.cycleBonuses[cyc][result]++;}state.czHistory.unshift({cz:'周期CZ',games:state.currentGames,success,result,cycle:cyc,points:{カバネ:pts},date:new Date().toLocaleString('ja-JP')});state.chancePts.カバネ=0;if(success)recordBonusResult(result,state.currentGames,cyc,'周期CZ→'+result);if(result==='fail'||result==='駿城'){state.sea.cycle=cyc>=6?1:cyc+1;getSeaCycle(state.sea.cycle);}saveState();closeModal();render();if(result==='fail')toast(`${cyc}周期の周期CZ失敗を記録 → ${state.sea.cycle}周期へ進みました`);else if(result==='駿城')toast(`${cyc}周期の駿城当選を記録 → ${state.sea.cycle}周期へ進みました`);else toast(`${cyc}周期のEP当選を記録しました`)}}
+function openPeriodCZ(){
+ const pts=state.chancePts.カバネ||0;
+ const cyc=state.sea.cycle;
+ const hitGames=Math.max(0,Number(state.currentGames)||0);
+ modalBase(`<h2>周期CZ</h2><div class="prediction">現在周期：<strong>${cyc}周期</strong><br>当選時カバネPT：<strong>${pts}pt</strong></div><div class="three-col result-buttons"><button class="image-result-button" data-period-result="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-period-result="駿城"><img src="${buttonImg("result:駿城")}"><span>駿城</span></button><button class="image-result-button" data-period-result="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div>`);
+ let result=null;
+ const finishSimple=(result)=>{
+   pushUndo();
+   const success=result!=="fail";
+   state.cycles[cyc].total++;
+   if(success){state.cycles[cyc].bonus++;state.cycleBonuses[cyc][result]++;}
+   state.czHistory.unshift({cz:'周期CZ',games:hitGames,success,result,cycle:cyc,points:{カバネ:pts},date:new Date().toLocaleString('ja-JP')});
+   state.chancePts.カバネ=0;
+   if(success)recordBonusResult(result,hitGames,cyc,'周期CZ→'+result);
+   if(result==='fail'){state.sea.cycle=cyc>=6?1:cyc+1;getSeaCycle(state.sea.cycle);}
+   saveState();closeModal();render();
+   if(result==='fail')toast(`${cyc}周期の周期CZ失敗を記録 → ${state.sea.cycle}周期へ進みました`);
+   else toast(`${cyc}周期のEP当選を記録しました`);
+ };
+ const finishShun=(afterResult)=>{
+   pushUndo();
+   // 駿城ボーナス自体はCZ成功として当選時ゲーム数で記録する。
+   state.cycles[cyc].total++;
+   state.cycles[cyc].bonus++;
+   state.cycleBonuses[cyc].駿城++;
+   state.czHistory.unshift({cz:'周期CZ',games:hitGames,success:true,result:'駿城',cycle:cyc,points:{カバネ:pts},date:new Date().toLocaleString('ja-JP')});
+   state.chancePts.カバネ=0;
+   recordBonusResult('駿城',hitGames,cyc,'周期CZ→駿城');
+
+   // 駿城ボーナス消化分として必ず22G加算。
+   state.totalGames+=22;
+   state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+
+   if(afterResult==='EP'){
+     const epGames=Math.max(0,Number(state.currentGames)||0);
+     recordBonusResult('EP',epGames,cyc,'駿城→EP');
+     state.chancePts.カバネ=0;
+     saveState();closeModal();render();
+     toast(`駿城 ${hitGames}G → EP ${epGames}G を記録しました`);
+   }else{
+     state.sea.cycle=cyc>=6?1:cyc+1;
+     getSeaCycle(state.sea.cycle);
+     saveState();closeModal();render();
+     toast(`駿城 ${hitGames}G → 失敗（+22G）を記録 → ${state.sea.cycle}周期へ進みました`);
+   }
+ };
+ const openShunFollowup=()=>{
+   const projected=hitGames+22;
+   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に22G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：次の周期へ進む / EP：EP当選として周期をリセット</p>`);
+   $$('#modalRoot [data-shun-follow]').forEach(b=>b.onclick=()=>finishShun(b.dataset.shunFollow));
+ };
+ $$('#modalRoot [data-period-result]').forEach(b=>b.onclick=()=>{
+   result=b.dataset.periodResult;
+   if(result==='駿城'){openShunFollowup();return;}
+   $$('[data-period-result]').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');
+ });
+ const modal=$('#modalRoot .modal');
+ modal.insertAdjacentHTML('beforeend','<button class="primary modal-record-btn" id="periodRecord">記録する</button>');
+ $('#periodRecord').onclick=()=>{if(!result)return toast('結果を選択してください');if(result==='駿城')return;finishSimple(result)};
+}
 function closeModal(){const root=$("#modalRoot");if(root)root.innerHTML=""}
 function modalBase(body){$("#modalRoot").innerHTML=`<div class="modal-back"><div class="modal"><button class="modal-close" id="modalClose">✕</button>${body}</div></div>`;$("#modalClose").onclick=closeModal;return $("#modalRoot .modal")}
 function openRinne(){modalBase(`<h2>輪廻くじ</h2><div class="choice-grid" id="rinneTypes">${["好機有","兆し有","輪廻","六根清浄"].map(x=>`<button data-rinne-type="${x}">${x}</button>`).join("")}</div><div id="rinneCycles"></div><button class="primary modal-record-btn" id="rinneSave">記録する</button>`);let type="";$$('#rinneTypes button').forEach(b=>b.onclick=()=>{type=b.dataset.rinneType;$$('#rinneTypes button').forEach(x=>x.classList.remove('selected'));b.classList.add('selected');$("#rinneCycles").innerHTML=(type==="好機有"||type==="兆し有")?`<div class="field"><label>対象周期（複数選択可）</label><div class="cycle-buttons">${[1,2,3,4,5,6].map(n=>`<button data-rinne-cycle="${n}">${n}</button>`).join("")}</div></div>`:`<div class="prediction">現在の${state.sea.cycle}周期だけをLv7にします。</div>`});$("#rinneSave").onclick=()=>{if(!type)return toast("種類を選択してください");const cycles=$$('[data-rinne-cycle].active').map(x=>Number(x.dataset.rinneCycle));if((type==="好機有"||type==="兆し有")&&!cycles.length)return toast("周期を1つ以上選択してください");pushUndo();state.sea.rinne.push({type,cycles,cycle:state.sea.cycle,date:new Date().toLocaleString('ja-JP')});saveState();closeModal();render();toast("輪廻くじを記録しました")};$("#rinneCycles").addEventListener("click",e=>{if(e.target.dataset.rinneCycle)e.target.classList.toggle("active")})}
@@ -368,7 +427,13 @@ document.addEventListener("click",e=>{
    if(b.dataset.chance){pushUndo();const d=state.chance[b.dataset.chance],k=b.dataset.key;d[k]++;state.chancePts[b.dataset.chance]+=POINTS[k];saveState();render();return}
    if(b.dataset.action==='games-add'){pushUndo();state.totalGames+=Number(b.dataset.value)||0;saveState();render();return}
    if(b.dataset.action==='games-minus'){pushUndo();state.totalGames=Math.max(0,state.totalGames-1);saveState();render();return}
-   if(b.dataset.action==='games-input'){modalBase(`<h2>総ゲーム数</h2><div class="field"><label>現在の総ゲーム数</label><input id="totalGamesInput" type="number" min="0" value="${state.totalGames}"></div><button class="primary modal-record-btn" id="modalSave">保存</button>`);$("#modalSave").onclick=()=>{pushUndo();state.totalGames=Math.max(0,Number($("#totalGamesInput").value)||0);state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));saveState();closeModal();render();toast("総ゲーム数を更新しました")};return}
+   if(b.dataset.action==='games-input'){
+     let inputValue=String(Math.max(0,Number(state.totalGames)||0));
+     const draw=()=>{const out=$("#totalGamesKeypadValue");if(out)out.textContent=(inputValue||"0")+"G"};
+     modalBase(`<h2>総ゲーム数</h2><div class="keypad-display" id="totalGamesKeypadValue">${inputValue}G</div><div class="number-keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-keypad-number="${n}">${n}</button>`).join("")}<button class="keypad-zero" data-keypad-number="0">0</button><button class="keypad-delete" data-keypad-delete>×</button></div><button class="primary modal-record-btn" id="modalSave">保存</button>`);
+     $$('#modalRoot [data-keypad-number]').forEach(k=>k.onclick=()=>{const n=k.dataset.keypadNumber;if(inputValue==='0')inputValue=n;else inputValue+=n;inputValue=inputValue.replace(/^0+(?=\d)/,'');draw()});
+     $('#modalRoot [data-keypad-delete]').onclick=()=>{inputValue=inputValue.slice(0,-1);draw()};
+     $("#modalSave").onclick=()=>{pushUndo();state.totalGames=Math.max(0,Number(inputValue)||0);state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));saveState();closeModal();render();toast("総ゲーム数を更新しました")};return}
    if(b.dataset.action==='bell-plus'){pushUndo();state.bell.count++;saveState();render();return}
    if(b.dataset.action==='bell-minus'){pushUndo();state.bell.count=Math.max(0,state.bell.count-1);saveState();render();return}
    if(b.dataset.action==='cz-win'){openCz(b.dataset.cz);return}
