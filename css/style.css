@@ -673,3 +673,20 @@ body.light-theme .record-manual-select{
   .action-card .three-col button{font-size:11px;padding:7px 2px}
   #voiceButtons,#introButtons{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
 }
+
+/* v69: keep all CZ action buttons on one row on phones */
+@media(max-width:520px){
+  .action-card .three-col{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:5px;
+  }
+  .action-card .three-col button,
+  .action-card .three-col button:last-child{
+    grid-column:auto;
+    min-width:0;
+    width:100%;
+    padding:8px 2px;
+    font-size:11px;
+    white-space:nowrap;
+  }
+}
