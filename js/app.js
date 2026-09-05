@@ -298,8 +298,8 @@ function finalSetting(){
  const max=Math.max(...Object.values(scores));const tops=Object.entries(scores).filter(([,v])=>v===max).map(([s])=>s);return {evidence,candidates:candidates.length?candidates:[1,2,3,4,5,6],scores,tops};
 }
 function normalPredict(){
- const f=finalSetting();const lines=f.evidence.map((e,i)=>`<div class="setting-item"><span>${i+1}. ${e===f.evidence[3]?e.text:esc(e.text)}</span><b>${stars(levelRank[e.level]||0)}</b><em class="setting-level level-${e.level}">${e.level}</em></div>`).join("");
- return `<div class="final-setting"><strong>総合設定予想：${f.tops.map(x=>`設定${x}`).join(" or ")}</strong><small>優先順位：確定 ＞ 濃厚 ＞ 期待高 ＞ 期待度UP ＞ 参考</small></div>${lines}`;
+ const f=finalSetting();const lines=f.evidence.map((e,i)=>`<div class="setting-item"><span>${i+1}. ${e===f.evidence[3]?e.text:esc(e.text)}</span><em class="setting-level level-${e.level}">${e.level}</em></div>`).join("");
+ return `<div class="final-setting"><strong>予想：${f.tops.map(x=>`設定${x}`).join(" or ")}</strong><small>優先度：確定 ＞ 濃厚 ＞ 期待高 ＞ 期待度UP ＞ 参考</small></div>${lines}`;
 }
 function bonusPredict(){return normalPredict()}
 function renderPredictions(){

@@ -630,3 +630,46 @@ body.light-theme .record-manual-select{
   .chance-card .counter-btn b{font-size:20px;line-height:1.05}
   .chance-card .counter-btn span{font-size:8.5px;line-height:1.2;display:block;margin-top:4px}
 }
+
+/* v66: compact one-row control layouts */
+.game-actions{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:6px;
+}
+.game-actions button{
+  min-width:0;
+  padding-left:4px;
+  padding-right:4px;
+}
+.action-card .three-col{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.action-card .three-col button{
+  min-width:0;
+  padding-left:5px;
+  padding-right:5px;
+}
+#voiceButtons,#introButtons{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+#voiceButtons .image-choice,#introButtons .image-choice{
+  min-width:0;
+}
+@media(max-width:680px){
+  .game-actions{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+  .game-actions button{min-height:44px;padding:7px 2px;font-size:12px}
+  .game-actions button[data-action="games-add"]{font-size:14px}
+  .game-actions button[data-action="games-input"]{font-size:10px;line-height:1.15}
+  .action-card .three-col{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .action-card .three-col button{font-size:12px;padding:8px 3px}
+  #voiceButtons,#introButtons{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+}
+@media(max-width:420px){
+  .game-actions{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+  .game-actions button{padding:6px 1px;font-size:11px}
+  .game-actions button[data-action="games-add"]{font-size:13px}
+  .game-actions button[data-action="games-input"]{font-size:9px}
+  .action-card .three-col{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .action-card .three-col button{font-size:11px;padding:7px 2px}
+  #voiceButtons,#introButtons{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+}
