@@ -80,7 +80,19 @@ function historyHtmlFromData(d){
   const itemCounts=ITEMS.filter(k=>Number(d.items?.[k])>0).map(k=>`${esc(k)}：${Number(d.items[k])||0}個`).join("<br>")||"なし";
   const order=(d.itemOrder||[]).slice(0,50).map((x,i)=>`${i+1}. ${esc(x.item||"")}`).join("<br>")||"なし";
   const sea=(d.seaHistory||[]).map(x=>`${esc(x.date||"")} / ${esc(x.trigger||"")} / 現在${x.cycle??"—"}周期<br>${(x.predictions||[]).map(p=>`${p.cycle}周期:${esc(p.prediction||"不明")}`).join(" / ")}`).join("<hr>")||"なし";
-  const cz=(d.czHistory||[]).map(x=>`<div class="stat-row"><span>${esc(x.date||"")}<br>${esc(x.cz||"")} ${x.success?"成功":"失敗"}</span><b>${Number(x.games)||0}G / 前回ボーナスから${x.elapsedGames??"—"}G / ${Object.entries(x.points||{}).map(([k,v])=>esc(k)+" "+(Number(v)||0)+"pt").join(" / ")}</b></div>`).join("")||"なし";
+  const cz=(d.czHistory||[]).map(x=>{
+    const name=x.cz||"";
+    const kindClass=name==="生駒CZ"?"cz-kind-ikoma":name==="無名CZ"?"cz-kind-mumei":"cz-kind-period";
+    let result=x.result;
+    if(result==="fail")result="失敗";
+    if(!result)result=x.success?"EP":"失敗";
+    const isFail=result==="失敗"||result==="駿城⇒失敗";
+    const resultText=(result==="駿城⇒失敗"||result==="駿城⇒EP"||result==="EP"||result==="失敗")?result:(x.success?"EP":"失敗");
+    const resultClass=isFail?"cz-result-fail":"cz-result-success";
+    let pointKey=name==="無名CZ"?"無名":name==="生駒CZ"?"生駒":"カバネ";
+    const pointVal=Number((x.points||{})[pointKey])||0;
+    return `<div class="stat-row cz-history-row"><span>${esc(x.date||"")}<br><strong class="${kindClass}">${esc(name)}</strong> <strong class="${resultClass}">${esc(resultText)}</strong></span><b>${Number(x.games)||0}G / ${esc(pointKey)} ${pointVal}pt</b></div>`;
+  }).join("")||"なし";
   return `${recordSummaryHtml(d)}<div class="record-details history-like"><div class="modal-section"><b>CZ履歴</b><div class="stat-list">${cz}</div></div><div class="modal-section"><b>アイテム集計</b><p>${itemCounts}</p><b>直近の出現順</b><p>${order}</p></div><div class="modal-section"><b>海門レベル履歴</b><p>${sea}</p></div></div>`;
 }
 function renderPastRecords(){
@@ -498,7 +510,7 @@ function openSeaChoice(kind){
 }
 function openHistory(){modalBase(`<h2>履歴</h2>${historyHtmlFromData(state)}`)}
 function openSettings(){modalBase(`<h2>画像・UI設定</h2><div class="modal-section"><b>全体テーマ</b><div class="choice-grid"><button data-theme="dark">ダーク</button><button data-theme="light">ライト</button></div></div><div class="modal-section"><b>背景</b><div class="choice-grid"><button class="bg-choice ${state.ui.background==="steel-dark"?"selected":""}" data-bg="steel-dark" style="background-image:linear-gradient(#0006,#0008),url(assets/backgrounds/steel-dark.svg)">鋼鉄</button><button class="bg-choice ${state.ui.background==="rail-night"?"selected":""}" data-bg="rail-night" style="background-image:linear-gradient(#0006,#0008),url(assets/backgrounds/rail-night.svg)">夜の線路</button><button class="bg-choice ${state.ui.background==="iron-red"?"selected":""}" data-bg="iron-red" style="background-image:linear-gradient(#0006,#0008),url(assets/backgrounds/iron-red.svg)">鉄・赤</button><button class="bg-choice ${state.ui.background==="black-minimal"?"selected":""}" data-bg="black-minimal" style="background-image:linear-gradient(#0006,#0008),url(assets/backgrounds/black-minimal.svg)">黒・ミニマル</button></div></div><div class="modal-section"><b>枠・アクセントカラー</b><div class="color-row"><span>カウンターなどの枠色</span><input id="borderColor" type="color" value="${state.ui.borderColor||"#303640"}"></div><div class="color-row"><span>強調色</span><input id="accentColor" type="color" value="${state.ui.accent||"#b44b34"}"></div></div><div class="modal-section"><b>画像ファイル</b><p class="muted">「画像選択」で登録した画像はボタンに即反映されます。登録画像を削除したい場合はデータリセットが必要です。</p>${Object.entries({...IMAGE_KEYS,...Object.fromEntries(Object.keys(BONUS_IMAGE_KEYS).map(k=>[k,BONUS_IMAGE_KEYS[k]]))}).map(([k,v])=>`<div class="image-setting"><img src="${(BONUS_IMAGE_KEYS[k]?buttonImg(k):img(k))}"><span>${esc(k)}<br><small>${v}</small></span><label class="file-btn">画像選択<input type="file" accept="image/*" data-image-key="${k}" hidden></label></div>`).join("")}<div class="modal-section"><b>UI</b><div class="field"><label><input id="compactUI" type="checkbox" ${state.ui.compact?"checked":""}> コンパクト表示</label></div></div>`);$$('[data-theme]').forEach(b=>b.onclick=()=>{state.ui.theme=b.dataset.theme;saveState();applyUI();openSettings()});$$('[data-bg]').forEach(b=>b.onclick=()=>{state.ui.background=b.dataset.bg;saveState();applyUI();openSettings()});$("#borderColor").onchange=e=>{state.ui.borderColor=e.target.value;saveState();applyUI()};$("#accentColor").onchange=e=>{state.ui.accent=e.target.value;saveState();applyUI()};$("#compactUI").onchange=e=>{state.ui.compact=e.target.checked;saveState();applyUI()};$$("[data-image-key]").forEach(inp=>inp.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=async()=>{const key=e.target.dataset.imageKey;state.ui.images[key]=r.result;await setStoredImage(key,r.result);saveState();openSettings();toast("画像を保存しました")};r.readAsDataURL(f)})}
-function applyUI(){document.documentElement.style.setProperty("--bg",state.ui.theme==="light"?"#f2f3f5":"#0d0f13");document.documentElement.style.setProperty("--card",state.ui.theme==="light"?"#fff":"#171a20");document.documentElement.style.setProperty("--card2",state.ui.theme==="light"?"#e7e9ed":"#20242c");document.documentElement.style.setProperty("--text",state.ui.theme==="light"?"#15171b":"#f4f5f7");document.documentElement.style.setProperty("--border",state.ui.borderColor||"#303640");document.documentElement.style.setProperty("--accent",state.ui.accent||"#b44b34");document.documentElement.style.setProperty("--page-bg",`url("assets/backgrounds/${state.ui.background||"steel-dark"}.svg")`);document.body.classList.toggle("compact",state.ui.compact)}
+function applyUI(){const light=state.ui.theme==="light";document.documentElement.style.setProperty("--bg",light?"#f4f5f7":"#0d0f13");document.documentElement.style.setProperty("--card",light?"#ffffff":"#171a20");document.documentElement.style.setProperty("--card2",light?"#e3e6eb":"#20242c");document.documentElement.style.setProperty("--text",light?"#111318":"#f4f5f7");document.documentElement.style.setProperty("--muted",light?"#535b67":"#9ba2ad");document.documentElement.style.setProperty("--warn",light?"#9a5a00":"#f0bd4f");document.documentElement.style.setProperty("--border",light?"#aeb5bf":(state.ui.borderColor||"#303640"));document.documentElement.style.setProperty("--accent",state.ui.accent||"#b44b34");document.documentElement.style.setProperty("--page-bg",`url("assets/backgrounds/${state.ui.background||"steel-dark"}.svg")`);document.body.classList.toggle("compact",state.ui.compact);document.body.classList.toggle("light-theme",light)}
 function changeCycle(n){if(state.sea.cycle===n)return;pushUndo();state.sea.cycle=n;getSeaCycle(n);saveState();render();toast(`${n}周期に変更しました`) }
 
 document.addEventListener("click",e=>{
@@ -510,10 +522,11 @@ document.addEventListener("click",e=>{
    if(b.dataset.recordNoteSave){const ta=document.querySelector(`[data-record-note="${CSS.escape(b.dataset.recordNoteSave)}"]`);if(updatePastRecordNote(b.dataset.recordNoteSave,ta?.value||'')){renderPastRecords();toast('メモを保存しました')}else toast('メモの保存に失敗しました');return}
    if(b.dataset.action==='undo'){undoLast();return}
    if(b.dataset.chance){pushUndo();const d=state.chance[b.dataset.chance],k=b.dataset.key;d[k]++;state.chancePts[b.dataset.chance]+=POINTS[k];saveState();render();return}
-   if(b.dataset.action==='games-add'){pushUndo();state.totalGames+=Number(b.dataset.value)||0;saveState();render();return}
+   if(b.dataset.action==='games-add'){pushUndo();state.totalGames=Math.max(0,state.totalGames+(Number(b.dataset.value)||0));state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));saveState();render();return}
    if(b.dataset.action==='games-minus'){pushUndo();state.totalGames=Math.max(0,state.totalGames-1);saveState();render();return}
    if(b.dataset.action==='games-input'){
-     let inputMode='current';
+     let inputMode='total';
+     let fresh={current:true,total:true};
      let values={
        current:String(Math.max(0,Number(state.currentGames)||0)),
        total:String(Math.max(0,Number(state.totalGames)||0))
@@ -525,10 +538,10 @@ document.addEventListener("click",e=>{
        if(title)title.textContent=inputMode==='current'?"現在ゲーム数":"総ゲーム数";
        $$('#modalRoot [data-game-input-mode]').forEach(x=>x.classList.toggle('selected',x.dataset.gameInputMode===inputMode));
      };
-     modalBase(`<div class="game-input-top"><div class="game-input-switch"><button data-game-input-mode="current" class="selected">現在ゲーム数</button><button data-game-input-mode="total">総ゲーム数</button></div></div><h2 id="gamesKeypadTitle">現在ゲーム数</h2><div class="keypad-display" id="gamesKeypadValue">${values.current}G</div><div class="number-keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-keypad-number="${n}">${n}</button>`).join("")}<button class="keypad-zero" data-keypad-number="0">0</button><button class="keypad-delete" data-keypad-delete>×</button></div><button class="primary modal-record-btn" id="modalSave">保存</button>`);
+     modalBase(`<div class="game-input-top"><div class="game-input-switch"><button data-game-input-mode="total" class="selected">総ゲーム数</button><button data-game-input-mode="current">現在ゲーム数</button></div></div><h2 id="gamesKeypadTitle">総ゲーム数</h2><div class="keypad-display" id="gamesKeypadValue">${values.total}G</div><div class="number-keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-keypad-number="${n}">${n}</button>`).join("")}<button class="keypad-zero" data-keypad-number="0">0</button><button class="keypad-delete" data-keypad-delete>×</button></div><button class="primary modal-record-btn" id="modalSave">保存</button>`);
      $$('#modalRoot [data-game-input-mode]').forEach(x=>x.onclick=()=>{inputMode=x.dataset.gameInputMode;draw()});
-     $$('#modalRoot [data-keypad-number]').forEach(k=>k.onclick=()=>{const n=k.dataset.keypadNumber;let v=values[inputMode]||'';if(v==='0')v=n;else v+=n;values[inputMode]=v.replace(/^0+(?=\d)/,'');draw()});
-     $('#modalRoot [data-keypad-delete]').onclick=()=>{values[inputMode]=(values[inputMode]||'').slice(0,-1);draw()};
+     $$('#modalRoot [data-keypad-number]').forEach(k=>k.onclick=()=>{const n=k.dataset.keypadNumber;let v=fresh[inputMode]?'':(values[inputMode]||'');fresh[inputMode]=false;if(v==='0')v=n;else v+=n;values[inputMode]=v.replace(/^0+(?=\d)/,'');draw()});
+     $('#modalRoot [data-keypad-delete]').onclick=()=>{if(fresh[inputMode]){values[inputMode]='';fresh[inputMode]=false}else values[inputMode]=(values[inputMode]||'').slice(0,-1);draw()};
      $("#modalSave").onclick=()=>{
        pushUndo();
        if(inputMode==='total'){
