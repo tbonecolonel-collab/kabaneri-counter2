@@ -554,6 +554,39 @@ function changeCycle(n){if(state.sea.cycle===n)return;pushUndo();state.sea.cycle
 function lightHaptic(){
   try{if(typeof navigator.vibrate==="function")navigator.vibrate(12)}catch{}
 }
+function tapIncrementLabel(b){
+  if(!b)return "";
+  if(b.dataset.chance){
+    const k=b.dataset.key;
+    const pts=Number(POINTS?.[k]??0);
+    return pts>0?`+${pts}`:"";
+  }
+  if(b.dataset.action==='games-add'){const v=Number(b.dataset.value)||0;return v>0?`+${v}G`:""}
+  if(b.dataset.action==='bell-plus')return "+1";
+  if(b.dataset.item)return "+1";
+  if(b.dataset.choice)return "+1";
+  if(b.dataset.lifeAction)return "+1";
+  if(b.dataset.seaChoice)return "+1";
+  if(b.dataset.rinneType||b.dataset.rinneCycle)return "+1";
+  return "";
+}
+function showTapPop(b,label){
+  if(!label||!b?.getBoundingClientRect)return;
+  const r=b.getBoundingClientRect();
+  const pop=document.createElement("span");
+  pop.className="tap-pop";
+  pop.textContent=label;
+  pop.style.left=`${r.left+r.width/2}px`;
+  pop.style.top=`${r.top+Math.min(r.height*.48,44)}px`;
+  document.body.appendChild(pop);
+  setTimeout(()=>pop.remove(),650);
+}
+function pressVisual(b){
+  if(!b)return;
+  b.classList.add("tap-pressed");
+  clearTimeout(b._tapReleaseTimer);
+  b._tapReleaseTimer=setTimeout(()=>b.classList.remove("tap-pressed"),150);
+}
 function updateStickyOffsets(){
   const topbar=document.querySelector(".topbar");
   const tabs=document.querySelector(".sticky-tabs");
@@ -562,9 +595,17 @@ function updateStickyOffsets(){
   if(tabs)root.style.setProperty("--tabs-h",`${Math.ceil(tabs.getBoundingClientRect().height)}px`);
 }
 
+document.addEventListener("pointerdown",e=>{
+ const b=e.target.closest?.("button,.file-btn");if(!b||b.disabled)return;
+ pressVisual(b);
+ lightHaptic();
+ showTapPop(b,tapIncrementLabel(b));
+},{passive:true});
+document.addEventListener("pointerup",e=>{const b=e.target.closest?.("button,.file-btn");if(b)setTimeout(()=>b.classList.remove("tap-pressed"),55)},{passive:true});
+document.addEventListener("pointercancel",e=>{const b=e.target.closest?.("button,.file-btn");if(b)b.classList.remove("tap-pressed")},{passive:true});
+
 document.addEventListener("click",e=>{
  const b=e.target.closest?.("button");if(!b)return;
- lightHaptic();
  try{
    if(b.dataset.page){$$('.tab').forEach(x=>x.classList.toggle('active',x===b));$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+b.dataset.page));document.body.classList.toggle('records-page-active',b.dataset.page==='records');if(b.dataset.page==='records')renderPastRecords();return}
    if(b.dataset.recordDate){b.closest('.record-date')?.classList.toggle('open');return}
@@ -645,7 +686,7 @@ document.addEventListener("change",e=>{
 // v44: iPhone/PWA用。アプリ本体をオフライン利用できるようService Workerを登録。
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js?v=64').catch(err => console.warn('service worker registration failed', err));
+    navigator.serviceWorker.register('./service-worker.js?v=73').catch(err => console.warn('service worker registration failed', err));
   });
 }
 render();
