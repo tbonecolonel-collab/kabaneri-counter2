@@ -574,8 +574,10 @@ function tapIncrementLabel(b){
     const pts=Number(POINTS?.[k]??0);
     return pts>0?`+${pts}`:"";
   }
-  if(b.dataset.action==='games-add'){const v=Number(b.dataset.value)||0;return v>0?`+${v}G`:""}
+  if(b.dataset.action==='games-add'){const v=Number(b.dataset.value)||0;return v>0?`+${v}G`:v<0?`${v}G`:""}
+  if(b.dataset.action==='games-minus')return "-1G";
   if(b.dataset.action==='bell-plus')return "+1";
+  if(b.dataset.action==='bell-minus')return "-1";
   if(b.dataset.item)return "+1";
   if(b.dataset.choice)return "+1";
   if(b.dataset.lifeAction)return "+1";
@@ -612,9 +614,34 @@ function updateStickyOffsets(){
 // 入力が成立した後だけ押下フィードバックを出す。
 function successfulTapFeedback(b,label){
  if(!b||b.disabled)return;
+ // Capture the button position before render() replaces count buttons.
+ const r=b.getBoundingClientRect?.();
  pressVisual(b);
  lightHaptic();
- showTapPop(b,label!==undefined?label:tapIncrementLabel(b));
+ const text=label!==undefined?label:tapIncrementLabel(b);
+ if(r&&r.width>0&&r.height>0){
+   const flash=document.createElement("span");
+   flash.className="tap-press-overlay";
+   flash.style.left=`${r.left}px`;
+   flash.style.top=`${r.top}px`;
+   flash.style.width=`${r.width}px`;
+   flash.style.height=`${r.height}px`;
+   const br=getComputedStyle(b).borderRadius;
+   if(br)flash.style.borderRadius=br;
+   document.body.appendChild(flash);
+   setTimeout(()=>flash.remove(),260);
+   if(text){
+     const pop=document.createElement("span");
+     pop.className="tap-pop";
+     pop.textContent=text;
+     pop.style.left=`${r.left+r.width/2}px`;
+     pop.style.top=`${r.top+Math.min(r.height*.48,44)}px`;
+     document.body.appendChild(pop);
+     setTimeout(()=>pop.remove(),650);
+   }
+ }else{
+   showTapPop(b,text);
+ }
 }
 
 document.addEventListener("click",e=>{
@@ -625,9 +652,9 @@ document.addEventListener("click",e=>{
    if(b.dataset.deleteRecord){if(confirm('この保存記録を削除しますか？')){pushUndo();deletePastRecord(b.dataset.deleteRecord);render();toast('保存記録を削除しました')}return}
    if(b.dataset.recordNoteSave){const ta=document.querySelector(`[data-record-note="${CSS.escape(b.dataset.recordNoteSave)}"]`);if(updatePastRecordNote(b.dataset.recordNoteSave,ta?.value||'')){renderPastRecords();toast('メモを保存しました')}else toast('メモの保存に失敗しました');return}
    if(b.dataset.action==='undo'){undoLast();return}
-   if(b.dataset.chance){pushUndo();const d=state.chance[b.dataset.chance],k=b.dataset.key;d[k]++;state.chancePts[b.dataset.chance]+=POINTS[k];saveState();render();return}
-   if(b.dataset.action==='games-add'){pushUndo();state.totalGames=Math.max(0,state.totalGames+(Number(b.dataset.value)||0));state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));saveState();render();return}
-   if(b.dataset.action==='games-minus'){pushUndo();state.totalGames=Math.max(0,state.totalGames-1);saveState();render();return}
+   if(b.dataset.chance){pushUndo();const d=state.chance[b.dataset.chance],k=b.dataset.key;d[k]++;state.chancePts[b.dataset.chance]+=POINTS[k];saveState();successfulTapFeedback(b);b.dataset.feedbackDone='1';render();return}
+   if(b.dataset.action==='games-add'){pushUndo();state.totalGames=Math.max(0,state.totalGames+(Number(b.dataset.value)||0));state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));saveState();successfulTapFeedback(b);b.dataset.feedbackDone='1';render();return}
+   if(b.dataset.action==='games-minus'){const before=state.totalGames;pushUndo();state.totalGames=Math.max(0,state.totalGames-1);saveState();if(state.totalGames!==before){successfulTapFeedback(b,'-1G');b.dataset.feedbackDone='1';}render();return}
    if(b.dataset.action==='games-input'){
      let inputMode='total';
      let fresh={current:true,total:true};
@@ -665,16 +692,16 @@ document.addEventListener("click",e=>{
        }
        saveState();closeModal();render();
      };return}
-   if(b.dataset.action==='bell-plus'){pushUndo();state.bell.count++;saveState();render();return}
-   if(b.dataset.action==='bell-minus'){pushUndo();state.bell.count=Math.max(0,state.bell.count-1);saveState();render();return}
+   if(b.dataset.action==='bell-plus'){pushUndo();state.bell.count++;saveState();successfulTapFeedback(b,'+1');b.dataset.feedbackDone='1';render();return}
+   if(b.dataset.action==='bell-minus'){const before=state.bell.count;pushUndo();state.bell.count=Math.max(0,state.bell.count-1);saveState();if(state.bell.count!==before){successfulTapFeedback(b,'-1');b.dataset.feedbackDone='1';}render();return}
    if(b.dataset.action==='cz-win'){openCz(b.dataset.cz);return}
    if(b.dataset.action==='period-cz'){openPeriodCZ();return}
-   if(b.dataset.item){pushUndo();state.items[b.dataset.item]=(state.items[b.dataset.item]||0)+1;state.itemOrder.push({item:b.dataset.item,date:new Date().toLocaleString('ja-JP')});saveState();render();return}
+   if(b.dataset.item){pushUndo();state.items[b.dataset.item]=(state.items[b.dataset.item]||0)+1;state.itemOrder.push({item:b.dataset.item,date:new Date().toLocaleString('ja-JP')});saveState();successfulTapFeedback(b,'+1');b.dataset.feedbackDone='1';render();return}
    if(b.dataset.action==='rinne'){openRinne();return}
    if(b.dataset.action==='sea-char'){openSeaChoice('char');return}
    if(b.dataset.action==='sea-stage'){openSeaChoice('stage');return}
    // LIFE buttons inside the CZ modal have their own handler. Handling them here too caused duplicate input in v16.
-   if(b.dataset.choice){pushUndo();state[b.dataset.choice][b.dataset.value]++;saveState();render();return}
+   if(b.dataset.choice){pushUndo();state[b.dataset.choice][b.dataset.value]++;saveState();successfulTapFeedback(b,'+1');b.dataset.feedbackDone='1';render();return}
    if(b.dataset.action==='history'){openHistory();return}
    if(b.dataset.action==='open-settings'){openSettings();return}
    if(b.dataset.action==='reset'){
@@ -693,6 +720,7 @@ document.addEventListener("click",e=>{
 document.addEventListener("click",e=>{
  const b=e.target.closest?.("button,.file-btn");
  if(!b||b.disabled)return;
+ if(b.dataset.feedbackDone==='1')return;
  if(b.matches('[data-cz-game],[data-period-game]'))return;
  // 明確に入力/操作ボタンとして扱われるものだけ反応させる。
  const actionable = b.dataset.action || b.dataset.chance || b.dataset.item || b.dataset.choice ||
@@ -713,7 +741,7 @@ document.addEventListener("change",e=>{
 // v44: iPhone/PWA用。アプリ本体をオフライン利用できるようService Workerを登録。
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js?v=75').catch(err => console.warn('service worker registration failed', err));
+    navigator.serviceWorker.register('./service-worker.js?v=79').catch(err => console.warn('service worker registration failed', err));
   });
 }
 render();
