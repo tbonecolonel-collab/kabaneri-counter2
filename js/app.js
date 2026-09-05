@@ -379,8 +379,9 @@ function openCz(kind){
    // 駿城ボーナス自体の当選はボーナス記録に残す。
    recordBonusResult('駿城',hitGames,hitCycle,kind+'CZ→駿城');
 
-   // 駿城ボーナス消化分として必ず22G加算。
-   state.totalGames+=22;
+   // 駿城ボーナス消化分として総ゲーム数に21G加算。
+   // 駿城⇒失敗時のCZ履歴gamesはhitGames（加算前）を維持する。
+   state.totalGames+=21;
    state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
 
    if(shunToEp){
@@ -392,12 +393,12 @@ function openCz(kind){
    }else{
      // 無名CZ・生駒CZ経由の駿城失敗では周期は進めない。
      saveState();closeModal();render();
-     toast(`${kind}CZ 駿城 ${hitGames}G → 失敗（+22G）をCZ1回・成功1回として記録しました`);
+     toast(`${kind}CZ 駿城 ${hitGames}G → 失敗（総ゲーム数+21G）をCZ1回・成功1回として記録しました`);
    }
  };
  const openShunFollowup=()=>{
-   const projected=hitGames+22;
-   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">${kind}CZから駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に22G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：駿城終了として記録 / EP：+22G後のゲーム数でEP当選として周期をリセット</p>`);
+   const projected=hitGames+21;
+   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">${kind}CZから駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に21G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：駿城終了として記録 / EP：+21G後のゲーム数でEP当選として周期をリセット</p>`);
    $$('#modalRoot [data-shun-follow]').forEach(b=>b.onclick=()=>finishShun(b.dataset.shunFollow));
  };
  $$('#modalRoot [data-cz-result]').forEach(b=>b.addEventListener('click',()=>{
@@ -448,8 +449,9 @@ function openPeriodCZ(){
    state.chancePts.カバネ=0;
    recordBonusResult('駿城',hitGames,cyc,'周期CZ→駿城');
 
-   // 駿城ボーナス消化分として必ず22G加算。
-   state.totalGames+=22;
+   // 駿城ボーナス消化分として総ゲーム数に21G加算。
+   // 駿城⇒失敗時のCZ履歴gamesはhitGames（加算前）を維持する。
+   state.totalGames+=21;
    state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
 
    // 周期CZのポイント履歴は駿城後の最終結果まで1つにまとめて表示する。
@@ -473,12 +475,12 @@ function openPeriodCZ(){
      state.sea.cycle=cyc>=6?1:cyc+1;
      getSeaCycle(state.sea.cycle);
      saveState();closeModal();render();
-     toast(`駿城 ${hitGames}G → 失敗（+22G）を記録 → ${state.sea.cycle}周期へ進みました`);
+     toast(`駿城 ${hitGames}G → 失敗（総ゲーム数+21G）を記録 → ${state.sea.cycle}周期へ進みました`);
    }
  };
  const openShunFollowup=()=>{
-   const projected=hitGames+22;
-   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に22G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：次の周期へ進む / EP：EP当選として周期をリセット</p>`);
+   const projected=hitGames+21;
+   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に21G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：次の周期へ進む / EP：EP当選として周期をリセット</p>`);
    $$('#modalRoot [data-shun-follow]').forEach(b=>b.onclick=()=>finishShun(b.dataset.shunFollow));
  };
  $$('#modalRoot [data-period-result]').forEach(b=>b.addEventListener('click',()=>{
