@@ -944,3 +944,28 @@ button.tap-pressed,.image-choice.tap-pressed,.file-btn.tap-pressed{
   .compact-life .image-action-button{min-height:58px}
   .compact-life .image-action-button img{height:30px}
 }
+
+/* v76: keep CZ result buttons in one row even on narrow phones */
+@media(max-width:520px){
+  #modalRoot .three-col.compact-result-buttons{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:5px !important;
+  }
+  #modalRoot .three-col.compact-result-buttons > button,
+  #modalRoot .three-col.compact-result-buttons > button:last-child{
+    grid-column:auto !important;
+    width:100% !important;
+    min-width:0 !important;
+    padding:4px 2px !important;
+  }
+  #modalRoot .three-col.compact-result-buttons .image-result-button img{
+    width:100% !important;
+    height:48px !important;
+    object-fit:contain !important;
+  }
+  #modalRoot .three-col.compact-result-buttons .image-result-button span{
+    font-size:12px !important;
+    white-space:nowrap !important;
+  }
+}
