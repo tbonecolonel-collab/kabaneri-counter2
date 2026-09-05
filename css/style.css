@@ -873,3 +873,74 @@ button.tap-pressed,.image-choice.tap-pressed,.file-btn.tap-pressed{
   .tap-pop{animation-duration:.12s}
   button.tap-pressed,.image-choice.tap-pressed,.file-btn.tap-pressed{transform:translateY(1px) scale(.99)!important}
 }
+
+
+/* v74 CZ modal compact layout + confirmed-click feedback */
+@media(max-width:520px){
+  #modalRoot .compact-result-buttons{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:6px;
+  }
+  #modalRoot .compact-result-buttons .image-result-button{
+    min-width:0;
+    min-height:82px;
+    padding:4px;
+    font-size:14px;
+  }
+  #modalRoot .compact-result-buttons .image-result-button img{
+    height:52px;
+    object-fit:contain;
+  }
+}
+.cz-current-only{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.ikoma-game-adjust{
+  display:grid;
+  grid-template-columns:72px 1fr 72px;
+  gap:8px;
+  align-items:center;
+  background:#11141a;
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:9px;
+  font-weight:800;
+}
+.ikoma-game-adjust>div{text-align:center}
+.ikoma-game-adjust button{
+  min-height:46px;
+  padding:8px 4px;
+  background:var(--card2);
+  border-radius:10px;
+  font-size:15px;
+  font-weight:900;
+}
+.ikoma-life-grid{display:grid;gap:6px;margin-top:8px}
+.compact-life{
+  grid-template-columns:58px minmax(0,1fr) minmax(0,1fr);
+  gap:5px;
+  margin-top:0;
+}
+.compact-life>strong{font-size:12px;white-space:nowrap}
+.compact-life .image-action-button{
+  min-height:64px;
+  padding:3px;
+  gap:2px;
+  font-size:11px;
+}
+.compact-life .image-action-button img{
+  height:34px;
+  object-fit:contain;
+}
+.compact-life .image-action-button span{
+  font-size:10px;
+  white-space:nowrap;
+}
+@media(max-width:520px){
+  .ikoma-game-adjust{grid-template-columns:64px 1fr 64px}
+  .compact-life{grid-template-columns:48px minmax(0,1fr) minmax(0,1fr)}
+  .compact-life .image-action-button{min-height:58px}
+  .compact-life .image-action-button img{height:30px}
+}

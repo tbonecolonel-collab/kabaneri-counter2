@@ -370,12 +370,28 @@ function recordBonusResult(type,games,cyc,source){
 }
 function openCz(kind){
  const pts=chancePointsSnapshot();
- const lifeButtons=kind==="生駒"?`<div class="modal-section"><b>生駒CZ LIFE</b>${[3,2,1].map(l=>{const d=state.ikoma[l]||{attack:0,avoid:0};return `<div class="life-inline"><strong>LIFE ${l}</strong><button class="image-action-button" data-life="${l}" data-life-action="attack"><img src="${buttonImg("result:襲撃")}"><span>襲撃 ${d.attack}回</span></button><button class="image-action-button" data-life="${l}" data-life-action="avoid"><img src="${buttonImg("result:回避")}"><span>回避 ${d.avoid}回</span></button></div>`}).join("")}</div>`:"";
- const recordButton=kind==="生駒"?'<button class="primary modal-record-btn" id="czRecord">記録する</button>':'';
- modalBase(`<h2>${kind}CZ当選</h2><div class="prediction">現在ゲーム数：<strong>${state.currentGames}G</strong><br>無名 ${pts.無名}pt / 生駒 ${pts.生駒}pt / カバネ ${pts.カバネ}pt</div><div class="modal-section"><b>結果</b><div class="three-col result-buttons">${["失敗","駿城","EP"].map(x=>`<button type="button" class="image-result-button" data-cz-result="${x}"><img src="${buttonImg("result:"+x)}"><span>${x}</span></button>`).join("")}</div></div>${lifeButtons}${recordButton}`);
- let result="";
- const hitGames=Math.max(0,Number(state.currentGames)||0);
+ let hitGames=Math.max(0,Number(state.currentGames)||0);
  const hitCycle=state.sea.cycle;
+ const gameAdjust=`<div class="ikoma-game-adjust cz-game-adjust"><button type="button" data-cz-game="-1" data-tap-label="-1">−1G</button><div>現在ゲーム数 <strong id="czModalGames">${hitGames}G</strong></div><button type="button" data-cz-game="1" data-tap-label="+1">＋1G</button></div>`;
+ const lifeButtons=kind==="生駒"?`<div class="modal-section ikoma-life-section"><b>生駒CZ LIFE</b><div class="ikoma-life-grid">${[3,2,1].map(l=>{const d=state.ikoma[l]||{attack:0,avoid:0};return `<div class="life-inline compact-life"><strong>LIFE ${l}</strong><button class="image-action-button" data-life="${l}" data-life-action="attack"><img src="${buttonImg("result:襲撃")}"><span>襲撃 ${d.attack}回</span></button><button class="image-action-button" data-life="${l}" data-life-action="avoid"><img src="${buttonImg("result:回避")}"><span>回避 ${d.avoid}回</span></button></div>`}).join("")}</div></div>`:"";
+ const recordButton=kind==="生駒"?'<button class="primary modal-record-btn" id="czRecord">記録する</button>':'';
+ modalBase(`<h2>${kind}CZ当選</h2>${gameAdjust}<div class="modal-section"><b>結果</b><div class="three-col result-buttons compact-result-buttons">${["失敗","駿城","EP"].map(x=>`<button type="button" class="image-result-button" data-cz-result="${x}"><img src="${buttonImg("result:"+x)}"><span>${x}</span></button>`).join("")}</div></div>${lifeButtons}${recordButton}`);
+ let result="";
+ const updateCzGames=(delta)=>{
+   const d=Number(delta)||0;
+   if(!d)return false;
+   if(d<0 && (hitGames<=0||state.totalGames<=0))return false;
+   pushUndo();
+   state.totalGames=Math.max(0,state.totalGames+(d>0?1:-1));
+   state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+   hitGames=Math.max(0,Number(state.currentGames)||0);
+   saveState();
+   const el=$("#czModalGames");if(el)el.textContent=`${hitGames}G`;
+   return true;
+ };
+ $$('[data-cz-game]').forEach(b=>b.onclick=()=>{
+   if(updateCzGames(b.dataset.czGame)) successfulTapFeedback(b,b.dataset.tapLabel||'');
+ });
  const finishSimple=(finalResult)=>{
    pushUndo();
    const success=finalResult!=="失敗";
@@ -391,8 +407,6 @@ function openCz(kind){
  };
  const finishShun=(afterResult)=>{
    pushUndo();
-   // 無名CZ・生駒CZは駿城に当選した時点でCZ成功。
-   // 駿城⇒EP / 駿城⇒失敗のどちらも、CZ1回・成功1回として集計する。
    state.cz[kind].win++;
    state.cz[kind].success++;
    const shunToEp=afterResult==='EP';
@@ -406,15 +420,8 @@ function openCz(kind){
      date:new Date().toLocaleString('ja-JP')
    });
    state.chancePts[kind]=0;
-
-   // 駿城ボーナス自体の当選はボーナス記録に残す。
    recordBonusResult('駿城',hitGames,hitCycle,kind+'CZ→駿城');
-
-   // 駿城ボーナス消化分として総ゲーム数に21G加算。
-   // 駿城⇒失敗時のCZ履歴gamesはhitGames（加算前）を維持する。
    state.totalGames+=21;
-   // 駿城⇒失敗は総ゲーム数だけ+21Gし、現在ゲーム数は駿城当選時のまま維持する。
-   // render() は totalGames-gameBase から現在Gを再計算するため、失敗時だけgameBaseも+21Gする。
    if(!shunToEp) state.gameBase=(state.gameBase||0)+21;
    state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
 
@@ -425,7 +432,6 @@ function openCz(kind){
      saveState();closeModal();render();
      toast(`${kind}CZ 駿城 ${hitGames}G → EP ${epGames}G をCZ1回・成功1回として記録しました`);
    }else{
-     // 無名CZ・生駒CZ経由の駿城失敗では周期は進めない。
      saveState();closeModal();render();
      toast(`${kind}CZ 駿城 ${hitGames}G → 失敗（総ゲーム数+21G）をCZ1回・成功1回として記録しました`);
    }
@@ -437,17 +443,8 @@ function openCz(kind){
  };
  $$('#modalRoot [data-cz-result]').forEach(b=>b.addEventListener('click',()=>{
    result=b.dataset.czResult;
-   if(result==='駿城'){
-     // 全CZ共通：駿城を押した時点で即「失敗 / EP」の2択へ進む。
-     openShunFollowup();
-     return;
-   }
-   if(kind==='無名'){
-     // 無名CZは失敗/EPを押した時点で即記録。
-     finishSimple(result);
-     return;
-   }
-   // 生駒CZは従来通り、失敗/EPを選択してから「記録する」。
+   if(result==='駿城'){openShunFollowup();return}
+   if(kind==='無名'){finishSimple(result);return}
    $$('#modalRoot [data-cz-result]').forEach(x=>x.classList.remove('selected'));
    b.classList.add('selected');
  }));
@@ -455,12 +452,28 @@ function openCz(kind){
  const czRecord=$('#czRecord');
  if(czRecord)czRecord.onclick=()=>{if(!result)return toast('結果を選択してください');if(result==='駿城')return openShunFollowup();finishSimple(result)};
 }
+
 function openPeriodCZ(){
  const pts=state.chancePts.カバネ||0;
  const cyc=state.sea.cycle;
- const hitGames=Math.max(0,Number(state.currentGames)||0);
- modalBase(`<h2>周期CZ</h2><div class="prediction">現在周期：<strong>${cyc}周期</strong><br>当選時カバネPT：<strong>${pts}pt</strong></div><div class="three-col result-buttons"><button type="button" class="image-result-button" data-period-result="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button type="button" class="image-result-button" data-period-result="駿城"><img src="${buttonImg("result:駿城")}"><span>駿城</span></button><button type="button" class="image-result-button" data-period-result="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div>`);
+ let hitGames=Math.max(0,Number(state.currentGames)||0);
+ modalBase(`<h2>周期CZ</h2><div class="ikoma-game-adjust cz-game-adjust"><button type="button" data-period-game="-1" data-tap-label="-1">−1G</button><div>現在ゲーム数 <strong id="periodModalGames">${hitGames}G</strong></div><button type="button" data-period-game="1" data-tap-label="+1">＋1G</button></div><div class="three-col result-buttons compact-result-buttons"><button type="button" class="image-result-button" data-period-result="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button type="button" class="image-result-button" data-period-result="駿城"><img src="${buttonImg("result:駿城")}"><span>駿城</span></button><button type="button" class="image-result-button" data-period-result="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div>`);
  let result=null;
+ const updatePeriodGames=(delta)=>{
+   const d=Number(delta)||0;
+   if(!d)return false;
+   if(d<0 && (hitGames<=0||state.totalGames<=0))return false;
+   pushUndo();
+   state.totalGames=Math.max(0,state.totalGames+(d>0?1:-1));
+   state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+   hitGames=Math.max(0,Number(state.currentGames)||0);
+   saveState();
+   const el=$("#periodModalGames");if(el)el.textContent=`${hitGames}G`;
+   return true;
+ };
+ $$('[data-period-game]').forEach(b=>b.onclick=()=>{
+   if(updatePeriodGames(b.dataset.periodGame)) successfulTapFeedback(b,b.dataset.tapLabel||'');
+ });
  const finishSimple=(result)=>{
    pushUndo();
    const success=result!=="fail";
@@ -595,14 +608,14 @@ function updateStickyOffsets(){
   if(tabs)root.style.setProperty("--tabs-h",`${Math.ceil(tabs.getBoundingClientRect().height)}px`);
 }
 
-document.addEventListener("pointerdown",e=>{
- const b=e.target.closest?.("button,.file-btn");if(!b||b.disabled)return;
+// v74: タップ演出はpointerdownではなく、実際にclickが成立した時だけ出す。
+// 入力が成立した後だけ押下フィードバックを出す。
+function successfulTapFeedback(b,label){
+ if(!b||b.disabled)return;
  pressVisual(b);
  lightHaptic();
- showTapPop(b,tapIncrementLabel(b));
-},{passive:true});
-document.addEventListener("pointerup",e=>{const b=e.target.closest?.("button,.file-btn");if(b)setTimeout(()=>b.classList.remove("tap-pressed"),55)},{passive:true});
-document.addEventListener("pointercancel",e=>{const b=e.target.closest?.("button,.file-btn");if(b)b.classList.remove("tap-pressed")},{passive:true});
+ showTapPop(b,label!==undefined?label:tapIncrementLabel(b));
+}
 
 document.addEventListener("click",e=>{
  const b=e.target.closest?.("button");if(!b)return;
@@ -676,6 +689,20 @@ document.addEventListener("click",e=>{
    }
  }catch(err){console.error('operation failed',err)}
 });
+// 通常ボタンはメインの入力処理が完了した後にフィードバック。
+document.addEventListener("click",e=>{
+ const b=e.target.closest?.("button,.file-btn");
+ if(!b||b.disabled)return;
+ if(b.matches('[data-cz-game],[data-period-game]'))return;
+ // 明確に入力/操作ボタンとして扱われるものだけ反応させる。
+ const actionable = b.dataset.action || b.dataset.chance || b.dataset.item || b.dataset.choice ||
+   b.dataset.czResult || b.dataset.periodResult || b.dataset.shunFollow || b.dataset.lifeAction ||
+   b.dataset.seaChoice || b.dataset.rinneType || b.dataset.rinneCycle || b.dataset.gameInputMode ||
+   b.dataset.keypadNumber !== undefined || b.hasAttribute('data-keypad-delete') || b.id==='modalSave' ||
+   b.id==='czRecord' || b.id==='rinneSave' || b.id==='modalClose' || b.classList.contains('tab') || b.classList.contains('file-btn');
+ if(actionable) successfulTapFeedback(b);
+});
+
 document.addEventListener("change",e=>{
   const sel=e.target.closest?.("[data-record-manual-setting]");if(!sel)return;
   const id=sel.dataset.recordManualSetting;
@@ -686,7 +713,7 @@ document.addEventListener("change",e=>{
 // v44: iPhone/PWA用。アプリ本体をオフライン利用できるようService Workerを登録。
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js?v=73').catch(err => console.warn('service worker registration failed', err));
+    navigator.serviceWorker.register('./service-worker.js?v=75').catch(err => console.warn('service worker registration failed', err));
   });
 }
 render();
