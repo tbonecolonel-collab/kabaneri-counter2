@@ -107,7 +107,8 @@ body.records-page-active .bottom-actions{grid-template-columns:1fr 1fr}
 /* v22: 海門Lv キャラ＋ステージ統合表示 */
 .sea-prediction-values{display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px}
 .sea-prediction-values .sea-sep{opacity:.55;font-weight:500}
-.sea-prediction-values .sea-overlap{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);border-radius:6px;padding:1px 5px;font-weight:950}
+.sea-prediction-values .sea-overlap{color:#ff9f1a;background:rgba(255,159,26,.15);border:1px solid rgba(255,159,26,.55);border-radius:6px;padding:1px 5px;font-weight:950}
+.sea-prediction-values .sea-overlap-strong{color:#ff3b30;background:rgba(255,59,48,.16);border:1px solid rgba(255,59,48,.62);border-radius:6px;padding:1px 5px;font-weight:950}
 
 .record-summary-sections{display:grid;gap:10px;margin:12px 0}.record-metric-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px}.record-metric-card h3{margin:0 0 8px;font-size:14px}.record-note{margin-top:12px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px}.record-note textarea{width:100%;min-height:110px;resize:vertical;margin:8px 0;padding:10px;border-radius:9px;border:1px solid var(--border);background:#11151b;color:var(--text);box-sizing:border-box}.record-note-save{width:100%}
 
@@ -424,4 +425,590 @@ button,.image-choice{-webkit-tap-highlight-color:transparent;touch-action:manipu
   -webkit-background-clip:text;background-clip:text;
   -webkit-text-fill-color:transparent;
   text-shadow:none;
+}
+
+/* v55: current/total game keypad switch */
+.game-input-top{display:flex;justify-content:flex-start;margin:0 0 8px}
+.game-input-switch{display:inline-grid;grid-template-columns:1fr 1fr;gap:4px;padding:4px;background:var(--card2);border:1px solid var(--border);border-radius:11px}
+.game-input-switch button{min-height:36px;padding:7px 10px;border-radius:8px;border:1px solid transparent;background:transparent;font-size:13px;font-weight:800;color:var(--text)}
+.game-input-switch button.selected{background:var(--accent);border-color:color-mix(in srgb,var(--accent) 65%,#fff);box-shadow:inset 0 1px 0 #ffffff22}
+
+
+/* v56: game controls, CZ history readability, light theme */
+.cz-history-row{align-items:center;line-height:1.45}
+.cz-history-row>span{min-width:155px}
+.cz-history-row>b{text-align:right}
+.cz-kind-mumei{color:#ff5b5b}
+.cz-kind-ikoma{color:#48d27d}
+.cz-kind-period{color:#4c9cff}
+.cz-result-fail{color:#ff5b5b}
+.cz-result-success{color:#4c9cff}
+body.light-theme{background-image:linear-gradient(rgba(255,255,255,.80),rgba(244,245,247,.88)),var(--page-bg);font-weight:500}
+body.light-theme .topbar{background:rgba(255,255,255,.94);color:#111318}
+body.light-theme .prediction,body.light-theme .final-setting,body.light-theme .keypad-display{background:#f7f8fa;color:#111318}
+body.light-theme .field input,body.light-theme .field select{background:#fff;color:#111318;border-color:#aeb5bf}
+body.light-theme button{color:#111318}
+body.light-theme .primary,body.light-theme .tab.active,body.light-theme .bell-btn,body.light-theme .attack-btn,body.light-theme .avoid-btn,body.light-theme .result-fail,body.light-theme .result-shun,body.light-theme .result-ep{color:#fff}
+body.light-theme .stat-row,body.light-theme .setting-item,body.light-theme .record-date-head{box-shadow:inset 0 0 0 1px rgba(0,0,0,.035)}
+body.light-theme .muted,body.light-theme .sub,body.light-theme .stat-row small,body.light-theme .counter-btn span{color:#535b67}
+@media(max-width:520px){.cz-history-row{flex-direction:column;align-items:stretch}.cz-history-row>b{text-align:left}}
+
+/* v57: light theme - keep text readable on dark chance cards */
+body.light-theme .chance-card.chance-mumei,
+body.light-theme .chance-card.chance-ikoma,
+body.light-theme .chance-card.chance-kabane{
+  color:#fff;
+}
+body.light-theme .chance-card .chance-title,
+body.light-theme .chance-card .chance-title b,
+body.light-theme .chance-card .chance-pt-box span,
+body.light-theme .chance-card .chance-rate-box span,
+body.light-theme .chance-card .chance-rate-box strong,
+body.light-theme .chance-card .chance-rate-box > small{
+  color:#fff !important;
+}
+body.light-theme .chance-card .chance-pt-box span,
+body.light-theme .chance-card .chance-rate-box span,
+body.light-theme .chance-card .chance-rate-box > small{
+  color:rgba(255,255,255,.78) !important;
+}
+/* The counter buttons themselves are light, so retain dark text there. */
+body.light-theme .chance-card .counter-btn,
+body.light-theme .chance-card .counter-btn b,
+body.light-theme .chance-card .counter-btn span{
+  color:#111318 !important;
+}
+
+/* v58: light theme - white text on dark UI surfaces */
+/* Inactive top tabs sit on the dark tab bar. */
+body.light-theme .sticky-tabs .tab:not(.active){
+  color:#fff;
+}
+
+/* Dark card section headings requested for normal / bonus pages. */
+body.light-theme #page-normal .card:not(.prediction-card) > .card-title,
+body.light-theme #page-bonus .card:not(.prediction-card) > .card-title{
+  color:#fff;
+}
+
+/* Sea-level controls and table are dark surfaces. */
+body.light-theme .sea-card .sea-grid button,
+body.light-theme .sea-card .sea-table-head,
+body.light-theme .sea-card .sea-row,
+body.light-theme .sea-card .sea-row small{
+  color:#fff;
+}
+body.light-theme .sea-card .sea-table-head,
+body.light-theme .sea-card .sea-row small{
+  color:rgba(255,255,255,.78);
+}
+body.light-theme .sea-card .sea-row b,
+body.light-theme .sea-card .sea-cycle{
+  color:#fff;
+}
+
+/* Item lottery buttons and fold-card headings are also dark. */
+body.light-theme #itemButtons .image-choice,
+body.light-theme #itemButtons .image-choice span,
+body.light-theme .fold-card > summary{
+  color:#fff;
+}
+
+/* Bonus choice labels / stats live on dark cards. */
+body.light-theme #page-bonus .image-choice,
+body.light-theme #page-bonus .image-choice > span,
+body.light-theme #page-bonus .image-choice .choice-footer,
+body.light-theme #page-bonus .image-choice .choice-label,
+body.light-theme #page-bonus .stat-row{
+  color:#fff !important;
+}
+body.light-theme #page-bonus .stat-row small{
+  color:rgba(255,255,255,.78) !important;
+}
+
+/* Archived-record date bars are dark. Keep inferred-setting colors intact. */
+body.light-theme .record-date-head,
+body.light-theme .record-date-head .record-list-date{
+  color:#fff;
+}
+body.light-theme .record-date-head small{
+  color:rgba(255,255,255,.76);
+}
+
+/* v59: light theme - keep text dark on light buttons / table rows */
+body.light-theme #page-bonus .image-choice,
+body.light-theme #page-bonus .image-choice > span,
+body.light-theme #page-bonus .image-choice .choice-footer,
+body.light-theme #page-bonus .image-choice .choice-label,
+body.light-theme #itemButtons .image-choice,
+body.light-theme #itemButtons .image-choice span,
+body.light-theme .sea-card .sea-grid button,
+body.light-theme .sea-card .sea-row:not(.current),
+body.light-theme .sea-card .sea-row:not(.current) b,
+body.light-theme .sea-card .sea-row:not(.current) small {
+  color:#111318 !important;
+}
+/* The selected/current sea row remains on a dark tinted surface. */
+body.light-theme .sea-card .sea-row.current,
+body.light-theme .sea-card .sea-row.current b,
+body.light-theme .sea-card .sea-row.current small {
+  color:#fff !important;
+}
+
+/* v60: requested light-theme text contrast fixes only */
+body.light-theme .action-card > .card-title > span:first-child{
+  color:#111318 !important;
+}
+body.light-theme .record-manual-wrap,
+body.light-theme .record-manual-wrap > span,
+body.light-theme .record-manual-select{
+  color:#fff !important;
+}
+
+
+/* v64: mobile sticky controls + easier top actions */
+:root{--topbar-h:62px;--tabs-h:56px}
+@media(max-width:600px){
+  .topbar{top:env(safe-area-inset-top);z-index:40;min-height:58px}
+  .top-actions{position:relative;top:5px;align-self:center}
+  .top-actions .undo-btn{width:62px;height:44px;border-radius:13px;font-size:25px}
+  .top-actions .icon-btn:not(.undo-btn){width:50px;height:44px}
+  .tabs.sticky-tabs{top:calc(env(safe-area-inset-top) + var(--topbar-h));z-index:35}
+  .quick-dashboard{display:contents}
+  .common-games{margin-bottom:10px}
+  .common-bell{
+    position:sticky;
+    top:calc(env(safe-area-inset-top) + var(--topbar-h) + var(--tabs-h) + 4px);
+    z-index:34;
+    margin-bottom:10px;
+    background:rgba(23,26,32,.97);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 6px 16px rgba(0,0,0,.22);
+  }
+  body.light-theme .common-bell{background:rgba(255,255,255,.97)}
+}
+
+/* v65: compact chance cards on phones */
+@media(max-width:560px){
+  .chance-card{padding:10px 8px}
+  .chance-head-compact{
+    display:grid;
+    grid-template-columns:46px minmax(0,1fr) auto;
+    gap:7px;
+    align-items:center;
+    margin-bottom:8px;
+  }
+  .chance-head-compact>img{width:46px;height:46px}
+  .chance-head-compact .chance-title{min-width:0}
+  .chance-head-compact .chance-title b{font-size:16px;white-space:nowrap}
+  .chance-metrics{
+    grid-column:auto;
+    width:auto;
+    margin-left:auto;
+    gap:4px;
+    align-items:stretch;
+  }
+  .chance-pt-box,.chance-rate-box{
+    min-width:58px;
+    padding:4px 5px;
+    border-radius:8px;
+  }
+  .chance-pt-box span,.chance-rate-box span{font-size:8px}
+  .chance-pt-box strong{font-size:18px}
+  .chance-pt-box strong small{font-size:9px}
+  .chance-rate-box strong{font-size:14px}
+  .chance-rate-box>small{font-size:8px}
+  .chance-card .counter-grid{
+    grid-template-columns:repeat(4,minmax(0,1fr));
+    gap:4px;
+  }
+  .chance-card .counter-btn{
+    min-height:62px;
+    padding:5px 2px;
+    border-radius:9px;
+  }
+  .chance-card .counter-btn b{font-size:20px;line-height:1.05}
+  .chance-card .counter-btn span{font-size:8.5px;line-height:1.2;display:block;margin-top:4px}
+}
+
+/* v66: compact one-row control layouts */
+.game-actions{
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  gap:6px;
+}
+.game-actions button{
+  min-width:0;
+  padding-left:4px;
+  padding-right:4px;
+}
+.action-card .three-col{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+.action-card .three-col button{
+  min-width:0;
+  padding-left:5px;
+  padding-right:5px;
+}
+#voiceButtons,#introButtons{
+  grid-template-columns:repeat(3,minmax(0,1fr));
+}
+#voiceButtons .image-choice,#introButtons .image-choice{
+  min-width:0;
+}
+@media(max-width:680px){
+  .game-actions{grid-template-columns:repeat(5,minmax(0,1fr));gap:5px}
+  .game-actions button{min-height:44px;padding:7px 2px;font-size:12px}
+  .game-actions button[data-action="games-add"]{font-size:14px}
+  .game-actions button[data-action="games-input"]{font-size:10px;line-height:1.15}
+  .action-card .three-col{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+  .action-card .three-col button{font-size:12px;padding:8px 3px}
+  #voiceButtons,#introButtons{grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+}
+@media(max-width:420px){
+  .game-actions{grid-template-columns:repeat(5,minmax(0,1fr));gap:4px}
+  .game-actions button{padding:6px 1px;font-size:11px}
+  .game-actions button[data-action="games-add"]{font-size:13px}
+  .game-actions button[data-action="games-input"]{font-size:9px}
+  .action-card .three-col{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+  .action-card .three-col button{font-size:11px;padding:7px 2px}
+  #voiceButtons,#introButtons{grid-template-columns:repeat(3,minmax(0,1fr));gap:5px}
+}
+
+/* v69: keep all CZ action buttons on one row on phones */
+@media(max-width:520px){
+  .action-card .three-col{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+    gap:5px;
+  }
+  .action-card .three-col button,
+  .action-card .three-col button:last-child{
+    grid-column:auto;
+    min-width:0;
+    width:100%;
+    padding:8px 2px;
+    font-size:11px;
+    white-space:nowrap;
+  }
+}
+
+
+/* v71: chance labels + compact bonus count buttons + collapsible ratio pies */
+#voiceButtons{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:6px}
+#introButtons{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:6px}
+#voiceButtons .image-choice,#introButtons .image-choice{min-width:0}
+#voiceButtons .bonus-count-choice,#introButtons .bonus-count-choice{min-height:92px}
+#voiceButtons .bonus-count-choice img{height:58px}
+#introButtons .bonus-count-choice img{height:68px}
+#voiceButtons .choice-footer,#introButtons .choice-footer{padding:5px 5px;gap:3px}
+#voiceButtons .choice-label,#introButtons .choice-label{font-size:11px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#voiceButtons .choice-count,#introButtons .choice-count{font-size:10px;min-width:28px;padding:2px 4px}
+.ratio-details{margin-top:9px;border:1px solid var(--border);border-radius:10px;background:var(--card2);overflow:hidden}
+.ratio-details>summary{cursor:pointer;list-style:none;padding:10px 12px;text-align:center;font-weight:900;color:var(--text);user-select:none}
+.ratio-details>summary::-webkit-details-marker{display:none}
+.ratio-details>summary::after{content:"▼";font-size:10px;margin-left:7px;color:var(--muted)}
+.ratio-details[open]>summary::after{content:"▲"}
+.pie-stats-labeled{display:flex;justify-content:center;align-items:center;padding:8px 8px 14px;margin-top:0}
+.labeled-pie{position:relative;width:220px;height:220px;overflow:visible}
+.labeled-pie .pie-hole{width:66px;height:66px;z-index:2}
+.pie-segment-label{position:absolute;z-index:3;transform:translate(-50%,-50%);display:flex;flex-direction:column;align-items:center;justify-content:center;max-width:70px;padding:3px 5px;border-radius:7px;background:rgba(8,10,14,.78);border:1px solid rgba(255,255,255,.18);color:#fff;text-shadow:0 1px 2px #000;text-align:center;line-height:1.05;pointer-events:none}
+.pie-segment-label b{font-size:9px;white-space:nowrap}
+.pie-segment-label small{font-size:9px;color:#fff;margin-top:2px;font-weight:900}
+@media(max-width:520px){
+  #voiceButtons{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:4px}
+  #voiceButtons .bonus-count-choice{min-height:82px}
+  #voiceButtons .bonus-count-choice img{height:49px}
+  #voiceButtons .choice-footer{padding:4px 3px;gap:2px}
+  #voiceButtons .choice-label{font-size:9px}
+  #voiceButtons .choice-count{font-size:9px;min-width:24px;padding:2px 3px}
+  #introButtons{grid-template-columns:repeat(3,minmax(0,1fr))!important;gap:5px}
+  .labeled-pie{width:205px;height:205px}
+  .pie-segment-label{max-width:62px;padding:2px 4px}
+  .pie-segment-label b,.pie-segment-label small{font-size:8px}
+}
+
+
+/* v72: readable bonus labels and 5-column item lottery */
+#voiceButtons .bonus-count-choice,
+#introButtons .bonus-count-choice{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  overflow:hidden;
+}
+#voiceButtons .bonus-count-choice img,
+#introButtons .bonus-count-choice img{
+  flex:0 0 auto;
+  width:100%;
+}
+#voiceButtons .choice-footer,
+#introButtons .choice-footer{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:2px!important;
+  padding:5px 2px 6px!important;
+  min-width:0;
+}
+#voiceButtons .choice-label,
+#introButtons .choice-label{
+  display:block!important;
+  width:100%;
+  padding:0!important;
+  font-size:10px!important;
+  line-height:1.15!important;
+  text-align:center;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  font-weight:900!important;
+}
+#voiceButtons .choice-count,
+#introButtons .choice-count{
+  display:block;
+  margin:0 auto;
+  min-width:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:10px!important;
+  line-height:1.1!important;
+  color:var(--warn);
+  font-weight:950;
+}
+#voiceButtons .choice-count.is-zero,
+#introButtons .choice-count.is-zero{color:var(--muted)}
+
+#itemButtons{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:5px!important;
+}
+#itemButtons .item-choice{
+  min-width:0;
+  min-height:0!important;
+  padding:4px 3px 5px!important;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  overflow:hidden;
+}
+#itemButtons .item-choice img{
+  width:100%;
+  height:auto!important;
+  aspect-ratio:1 / 1;
+  object-fit:contain!important;
+  border-radius:7px;
+  flex:0 0 auto;
+}
+#itemButtons .item-label{
+  display:block;
+  width:100%;
+  padding:4px 0 1px!important;
+  font-size:clamp(6px,1.55vw,10px)!important;
+  line-height:1.05!important;
+  font-weight:900!important;
+  text-align:center;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  letter-spacing:-0.04em;
+}
+#itemButtons .item-count{
+  display:block;
+  width:100%;
+  font-size:9px;
+  line-height:1.05;
+  text-align:center;
+  color:var(--text);
+  font-weight:900;
+}
+@media(max-width:520px){
+  #voiceButtons .bonus-count-choice{min-height:96px}
+  #voiceButtons .bonus-count-choice img{height:54px}
+  #introButtons .bonus-count-choice{min-height:116px}
+  #introButtons .bonus-count-choice img{height:76px}
+  #voiceButtons .choice-label{font-size:8.5px!important}
+  #introButtons .choice-label{font-size:10px!important}
+  #voiceButtons .choice-count,#introButtons .choice-count{font-size:9px!important}
+  #itemButtons{gap:4px!important}
+  #itemButtons .item-choice{padding:3px 2px 4px!important}
+  #itemButtons .item-label{font-size:clamp(5.4px,1.72vw,8.2px)!important;letter-spacing:-0.06em}
+  #itemButtons .item-count{font-size:8px}
+}
+
+/* v73: clearer tap feedback */
+button,.image-choice,.file-btn{
+  position:relative;
+  isolation:isolate;
+}
+button.tap-pressed,.image-choice.tap-pressed,.file-btn.tap-pressed{
+  transform:translateY(2px) scale(.975)!important;
+  filter:brightness(1.14)!important;
+  box-shadow:inset 0 3px 7px rgba(0,0,0,.34),0 0 0 3px color-mix(in srgb,var(--accent) 65%,#fff 35%),0 0 16px color-mix(in srgb,var(--accent) 55%,transparent)!important;
+  transition:transform .05s ease,filter .05s ease,box-shadow .05s ease!important;
+}
+.tap-pop{
+  position:fixed;
+  z-index:99999;
+  transform:translate(-50%,-50%);
+  pointer-events:none;
+  font-size:22px;
+  line-height:1;
+  font-weight:1000;
+  color:#fff;
+  text-shadow:0 2px 4px rgba(0,0,0,.85),0 0 9px color-mix(in srgb,var(--accent) 78%,#fff 22%);
+  animation:tap-pop-up .52s cubic-bezier(.18,.76,.32,1) forwards;
+}
+@keyframes tap-pop-up{
+  0%{opacity:0;transform:translate(-50%,-25%) scale(.72)}
+  22%{opacity:1;transform:translate(-50%,-60%) scale(1.16)}
+  100%{opacity:0;transform:translate(-50%,-155%) scale(.92)}
+}
+@media(prefers-reduced-motion:reduce){
+  .tap-pop{animation-duration:.12s}
+  button.tap-pressed,.image-choice.tap-pressed,.file-btn.tap-pressed{transform:translateY(1px) scale(.99)!important}
+}
+
+
+/* v74 CZ modal compact layout + confirmed-click feedback */
+@media(max-width:520px){
+  #modalRoot .compact-result-buttons{
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:6px;
+  }
+  #modalRoot .compact-result-buttons .image-result-button{
+    min-width:0;
+    min-height:82px;
+    padding:4px;
+    font-size:14px;
+  }
+  #modalRoot .compact-result-buttons .image-result-button img{
+    height:52px;
+    object-fit:contain;
+  }
+}
+.cz-current-only{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+}
+.ikoma-game-adjust{
+  display:grid;
+  grid-template-columns:72px 1fr 72px;
+  gap:8px;
+  align-items:center;
+  background:#11141a;
+  border:1px solid var(--border);
+  border-radius:11px;
+  padding:9px;
+  font-weight:800;
+}
+.ikoma-game-adjust>div{text-align:center}
+.ikoma-game-adjust button{
+  min-height:46px;
+  padding:8px 4px;
+  background:var(--card2);
+  border-radius:10px;
+  font-size:15px;
+  font-weight:900;
+}
+.ikoma-life-grid{display:grid;gap:6px;margin-top:8px}
+.compact-life{
+  grid-template-columns:58px minmax(0,1fr) minmax(0,1fr);
+  gap:5px;
+  margin-top:0;
+}
+.compact-life>strong{font-size:12px;white-space:nowrap}
+.compact-life .image-action-button{
+  min-height:64px;
+  padding:3px;
+  gap:2px;
+  font-size:11px;
+}
+.compact-life .image-action-button img{
+  height:34px;
+  object-fit:contain;
+}
+.compact-life .image-action-button span{
+  font-size:10px;
+  white-space:nowrap;
+}
+@media(max-width:520px){
+  .ikoma-game-adjust{grid-template-columns:64px 1fr 64px}
+  .compact-life{grid-template-columns:48px minmax(0,1fr) minmax(0,1fr)}
+  .compact-life .image-action-button{min-height:58px}
+  .compact-life .image-action-button img{height:30px}
+}
+
+/* v76: keep CZ result buttons in one row even on narrow phones */
+@media(max-width:520px){
+  #modalRoot .three-col.compact-result-buttons{
+    display:grid !important;
+    grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+    gap:5px !important;
+  }
+  #modalRoot .three-col.compact-result-buttons > button,
+  #modalRoot .three-col.compact-result-buttons > button:last-child{
+    grid-column:auto !important;
+    width:100% !important;
+    min-width:0 !important;
+    padding:4px 2px !important;
+  }
+  #modalRoot .three-col.compact-result-buttons .image-result-button img{
+    width:100% !important;
+    height:48px !important;
+    object-fit:contain !important;
+  }
+  #modalRoot .three-col.compact-result-buttons .image-result-button span{
+    font-size:12px !important;
+    white-space:nowrap !important;
+  }
+}
+
+/* v77: hard-lock CZ result choices to one row on phones */
+#modalRoot .compact-result-buttons{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:5px !important;
+}
+#modalRoot .compact-result-buttons > .image-result-button,
+#modalRoot .compact-result-buttons > .image-result-button:last-child{
+  grid-column:auto !important;
+  grid-row:auto !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+@media(max-width:520px){
+  #modalRoot .compact-result-buttons > .image-result-button{
+    min-height:74px !important;
+    padding:3px !important;
+  }
+  #modalRoot .compact-result-buttons > .image-result-button img{
+    width:100% !important;
+    height:42px !important;
+    object-fit:contain !important;
+  }
+}
+
+/* v78: feedback survives re-rendering count buttons */
+.tap-press-overlay{
+  position:fixed;
+  z-index:99998;
+  pointer-events:none;
+  box-sizing:border-box;
+  border:3px solid color-mix(in srgb,var(--accent) 72%,#fff 28%);
+  background:color-mix(in srgb,var(--accent) 15%,transparent);
+  box-shadow:inset 0 3px 7px rgba(0,0,0,.32),0 0 0 2px rgba(255,255,255,.16),0 0 18px color-mix(in srgb,var(--accent) 62%,transparent);
+  animation:tap-overlay-flash .24s ease-out forwards;
+}
+@keyframes tap-overlay-flash{
+  0%{opacity:.98;transform:translateY(2px) scale(.975);filter:brightness(1.18)}
+  55%{opacity:.9;transform:translateY(1px) scale(.99)}
+  100%{opacity:0;transform:none;filter:none}
 }

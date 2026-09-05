@@ -2,6 +2,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),1400)}
 function rate(a,b){return b?((a/b)*100).toFixed(1)+"%":"0.0%"}
 function totalObj(o){return Object.values(o||{}).reduce((a,b)=>a+(Number(b)||0),0)}
+function chanceFlashTotal(o){return (Number(o?.none)||0)+(Number(o?.flash)||0)}
 function chancePointsSnapshot(){return {...state.chancePts}}
 function img(key){return (state.ui.images&&state.ui.images[key])||IMAGE_KEYS[key]||"assets/placeholder.svg"}
 function buttonImg(key){const custom=state.ui.images&&state.ui.images[key];return custom||BONUS_IMAGE_KEYS[key]||"assets/placeholder.svg"}
@@ -65,7 +66,7 @@ function settingLabelForSnapshot(data){
 function recordSummaryHtml(d){
   d=d||{};
   const trophy=Object.entries(d.trophy||{}).filter(([,v])=>Number(v)>0).map(([k,v])=>`${esc(k)}：${Number(v)}個`).join(" / ")||"なし";
-  const chance=["無名","生駒","カバネ"].map(k=>{const x=d.chance?.[k]||{};const n=totalObj(x);return `<div class="stat-row"><span>${esc(k)}チャンス目発光率</span><b>${rate(Number(x.flash)||0,n)}</b><small>${Number(x.flash)||0}/${n}</small></div>`}).join("");
+  const chance=["無名","生駒","カバネ"].map(k=>{const x=d.chance?.[k]||{};const n=chanceFlashTotal(x);return `<div class="stat-row"><span>${esc(k)}チャンス目発光率</span><b>${rate(Number(x.flash)||0,n)}</b><small>${Number(x.flash)||0}/${n}</small></div>`}).join("");
   const cz=["無名","生駒"].map(k=>{const x=d.cz?.[k]||{};return `<div class="stat-row"><span>${esc(k)}CZ成功率</span><b>${rate(Number(x.success)||0,Number(x.win)||0)}</b><small>${Number(x.success)||0}/${Number(x.win)||0}</small></div>`}).join("");
   const cycles=[1,2,3,4,5,6].map(c=>{const x=d.cycles?.[c]||{bonus:0,total:0};return `<div class="stat-row"><span>${c}周期当選率</span><b>${rate(Number(x.bonus)||0,Number(x.total)||0)}</b><small>${Number(x.bonus)||0}/${Number(x.total)||0}</small></div>`}).join("");
   const voice=d.voice||{},voiceTotal=totalObj(voice);const voiceRows=Object.entries(voice).map(([k,v])=>`<div class="stat-row"><span>${esc(k)}</span><b>${Number(v)||0}回</b><small>${rate(Number(v)||0,voiceTotal)}</small></div>`).join("")||'<div class="muted">データなし</div>';
@@ -80,7 +81,19 @@ function historyHtmlFromData(d){
   const itemCounts=ITEMS.filter(k=>Number(d.items?.[k])>0).map(k=>`${esc(k)}：${Number(d.items[k])||0}個`).join("<br>")||"なし";
   const order=(d.itemOrder||[]).slice(0,50).map((x,i)=>`${i+1}. ${esc(x.item||"")}`).join("<br>")||"なし";
   const sea=(d.seaHistory||[]).map(x=>`${esc(x.date||"")} / ${esc(x.trigger||"")} / 現在${x.cycle??"—"}周期<br>${(x.predictions||[]).map(p=>`${p.cycle}周期:${esc(p.prediction||"不明")}`).join(" / ")}`).join("<hr>")||"なし";
-  const cz=(d.czHistory||[]).map(x=>`<div class="stat-row"><span>${esc(x.date||"")}<br>${esc(x.cz||"")} ${x.success?"成功":"失敗"}</span><b>${Number(x.games)||0}G / 前回ボーナスから${x.elapsedGames??"—"}G / ${Object.entries(x.points||{}).map(([k,v])=>esc(k)+" "+(Number(v)||0)+"pt").join(" / ")}</b></div>`).join("")||"なし";
+  const cz=(d.czHistory||[]).map(x=>{
+    const name=x.cz||"";
+    const kindClass=name==="生駒CZ"?"cz-kind-ikoma":name==="無名CZ"?"cz-kind-mumei":"cz-kind-period";
+    let result=x.result;
+    if(result==="fail")result="失敗";
+    if(!result)result=x.success?"EP":"失敗";
+    const isFail=result==="失敗"||result==="駿城⇒失敗";
+    const resultText=(result==="駿城⇒失敗"||result==="駿城⇒EP"||result==="EP"||result==="失敗")?result:(x.success?"EP":"失敗");
+    const resultClass=isFail?"cz-result-fail":"cz-result-success";
+    let pointKey=name==="無名CZ"?"無名":name==="生駒CZ"?"生駒":"カバネ";
+    const pointVal=Number((x.points||{})[pointKey])||0;
+    return `<div class="stat-row cz-history-row"><span>${esc(x.date||"")}<br><strong class="${kindClass}">${esc(name)}</strong> <strong class="${resultClass}">${esc(resultText)}</strong></span><b>${Number(x.games)||0}G / ${esc(pointKey)} ${pointVal}pt</b></div>`;
+  }).join("")||"なし";
   return `${recordSummaryHtml(d)}<div class="record-details history-like"><div class="modal-section"><b>CZ履歴</b><div class="stat-list">${cz}</div></div><div class="modal-section"><b>アイテム集計</b><p>${itemCounts}</p><b>直近の出現順</b><p>${order}</p></div><div class="modal-section"><b>海門レベル履歴</b><p>${sea}</p></div></div>`;
 }
 function renderPastRecords(){
@@ -101,7 +114,7 @@ function renderRecordSession(rec){
 function renderChance(){
  const el=$("#chanceGrid");if(!el)return;
  const toneClass={"無名":"chance-mumei","生駒":"chance-ikoma","カバネ":"chance-kabane"};
- el.innerHTML=Object.entries(state.chance).map(([name,d])=>{const n=totalObj(d),pt=state.chancePts[name]||0;return `<div class="chance-card ${toneClass[name]||''}"><div class="chance-head chance-head-compact"><img src="${img(name)}"><div class="chance-title"><b>${name}チャンス目</b></div><div class="chance-metrics"><div class="chance-pt-box"><span>現在PT</span><strong>${pt}<small>pt</small></strong></div><div class="chance-rate-box"><span>発光率</span><strong>${rate(d.flash,n)}</strong><small>${d.flash}/${n}</small></div></div></div><div class="counter-grid"><button class="counter-btn" data-chance="${name}" data-key="none"><b>${d.none}</b><span>無発光 +1pt</span></button><button class="counter-btn" data-chance="${name}" data-key="flash"><b>${d.flash}</b><span>発光 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="high"><b>${d.high}</b><span>高確率 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="combo"><b>${d.combo}</b><span>高確複合 +30pt</span></button></div></div>`}).join("");
+ el.innerHTML=Object.entries(state.chance).map(([name,d])=>{const n=chanceFlashTotal(d),pt=state.chancePts[name]||0;return `<div class="chance-card ${toneClass[name]||''}"><div class="chance-head chance-head-compact"><img src="${img(name)}"><div class="chance-title"><b>${name}チャンス目</b></div><div class="chance-metrics"><div class="chance-pt-box"><span>現在PT</span><strong>${pt}<small>pt</small></strong></div><div class="chance-rate-box"><span>発光率</span><strong>${rate(d.flash,n)}</strong><small>${d.flash}/${n}</small></div></div></div><div class="counter-grid"><button class="counter-btn" data-chance="${name}" data-key="none"><b>${d.none}</b><span>無発光 +1pt</span></button><button class="counter-btn" data-chance="${name}" data-key="flash"><b>${d.flash}</b><span>発光 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="high"><b>${d.high}</b><span>発光中 +1pt</span></button><button class="counter-btn" data-chance="${name}" data-key="combo"><b>${d.combo}</b><span>高確率 +15pt</span></button></div></div>`}).join("");
 }
 function czPointHistoryHtml(czName, pointKey){
  const items=(state.czHistory||[]).filter(x=>x.cz===czName).slice().reverse();
@@ -123,7 +136,7 @@ function renderCZ(){
 }
 function renderCycles(){ const el=$("#currentCycleLabel"); if(el) el.textContent=`${state.sea.cycle}周期`; }
 function renderItems(){
- $("#itemButtons").innerHTML=ITEMS.map(k=>`<button class="image-choice" data-item="${k}"><img src="${img(k)}"><span>${k}<br>${state.items[k]||0}個</span></button>`).join("");
+ $("#itemButtons").innerHTML=ITEMS.map(k=>`<button class="image-choice item-choice" data-item="${k}"><img src="${img(k)}"><span class="item-label">${k}</span><b class="item-count">${state.items[k]||0}個</b></button>`).join("");
  const small=ITEMS.filter(k=>state.items[k]).map(k=>`${k}：${state.items[k]}個（${ITEM_HINT[k]}）`);const early=itemEarlyInference();$("#itemPrediction").innerHTML=`<b>小吉1～5回目のタイミング（別判定）</b><br>${early.text}<hr>${small.length?small.join("<br>"):"通常のアイテム示唆：データ不足"}`;
 }
 function getSeaCycle(c){
@@ -149,19 +162,30 @@ function renderSea(){
 function renderLives(){
  const el=$("#lifeCards");if(!el)return;el.innerHTML=[3,2,1].map(l=>{const d=state.ikoma[l],n=d.attack+d.avoid;return `<div class="life-card"><div class="life-title"><b>LIFE ${l}</b><span>${d.avoid}/${n}</span></div><div class="life-actions"><button class="attack-btn" data-life="${l}" data-life-action="attack">ハズレ襲撃 +1</button><button class="avoid-btn" data-life="${l}" data-life-action="avoid">ハズレ回避 +1</button></div><div class="rate">回避率 ${rate(d.avoid,n)}</div></div>`}).join("");
 }
-function pieStats(o){
+function pieStats(o,title="割合",isOpen=false){
  const entries=Object.entries(o),total=totalObj(o);
- if(!total)return `<div class="pie-empty">データなし</div>`;
+ const openAttr=isOpen?" open":"";
+ if(!total)return `<details class="ratio-details"${openAttr}><summary>割合を表示</summary><div class="pie-empty">データなし</div></details>`;
  const palette=["#d85a44","#e7a33e","#e0cd4d","#66b56f","#48a4b8","#6386d9","#a56bc6","#d56a9d"];
- let acc=0;const stops=[];
- entries.forEach(([k,v],i)=>{const from=acc;acc+=v/total*100;stops.push(`${palette[i%palette.length]} ${from}% ${acc}%`)});
- const legend=entries.map(([k,v],i)=>`<div class="pie-legend-row"><span class="pie-dot" style="background:${palette[i%palette.length]}"></span><span>${k}</span><b>${v}回</b><small>${rate(v,total)}</small></div>`).join("");
- return `<div class="pie-stats"><div class="pie-chart" style="background:conic-gradient(${stops.join(',')})"><div class="pie-hole"><b>${total}</b><small>回</small></div></div><div class="pie-legend">${legend}</div></div>`;
+ let acc=0;const stops=[];const labels=[];
+ entries.forEach(([k,v],i)=>{
+   v=Number(v)||0;if(v<=0)return;
+   const from=acc;const pct=v/total*100;acc+=pct;
+   stops.push(`${palette[i%palette.length]} ${from}% ${acc}%`);
+   const mid=((from+acc)/2)*3.6-90,rad=mid*Math.PI/180,r=36;
+   const x=50+Math.cos(rad)*r,y=50+Math.sin(rad)*r;
+   labels.push(`<span class="pie-segment-label" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><b>${esc(k)}</b><small>${pct.toFixed(1)}%</small></span>`);
+ });
+ return `<details class="ratio-details"${openAttr}><summary>割合を表示</summary><div class="pie-stats pie-stats-labeled"><div class="pie-chart labeled-pie" style="background:conic-gradient(${stops.join(',')})"><div class="pie-hole"><b>${total}</b><small>回</small></div>${labels.join("")}</div></div></details>`;
 }
 function renderBonusStats(){
- const mk=o=>Object.entries(o).map(([k,v])=>`<div class="stat-row"><span>${k}</span><b>${v}回</b><small>${rate(v,totalObj(o))}</small></div>`).join("");
- $("#voiceButtons").innerHTML=VOICES.map(k=>`<button class="image-choice" data-choice="voice" data-value="${k}"><img src="${buttonImg("voice:"+k)}"><span>${k}</span></button>`).join("");$("#introButtons").innerHTML=INTROS.map(k=>`<button class="image-choice" data-choice="intro" data-value="${k}"><img src="${buttonImg("intro:"+k)}"><span>${k}</span></button>`).join("");$("#trophyButtons").innerHTML=TROPHIES.map(k=>`<button class="image-choice compact-count-choice" data-choice="trophy" data-value="${k}"><img src="${buttonImg("trophy:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.trophy[k]||0)===0?"is-zero":""}">${state.trophy[k]||0}個</b></span></button>`).join("");$("#endButtons").innerHTML=ENDS.map(k=>`<button class="image-choice compact-count-choice" data-choice="end" data-value="${k}"><img src="${buttonImg("end:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.end[k]||0)===0?"is-zero":""}">${state.end[k]||0}枚</b></span></button>`).join("");
- $("#voiceStats").innerHTML=pieStats(state.voice);$("#introStats").innerHTML=pieStats(state.intro);$("#trophyStats").innerHTML="";$("#endStats").innerHTML="";
+ const voiceWasOpen=$("#voiceStats .ratio-details")?.open||false;
+ const introWasOpen=$("#introStats .ratio-details")?.open||false;
+ $("#voiceButtons").innerHTML=VOICES.map(k=>`<button class="image-choice compact-count-choice bonus-count-choice" data-choice="voice" data-value="${k}"><img src="${buttonImg("voice:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.voice[k]||0)===0?"is-zero":""}">${state.voice[k]||0}回</b></span></button>`).join("");
+ $("#introButtons").innerHTML=INTROS.map(k=>`<button class="image-choice compact-count-choice bonus-count-choice" data-choice="intro" data-value="${k}"><img src="${buttonImg("intro:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.intro[k]||0)===0?"is-zero":""}">${state.intro[k]||0}回</b></span></button>`).join("");
+ $("#trophyButtons").innerHTML=TROPHIES.map(k=>`<button class="image-choice compact-count-choice" data-choice="trophy" data-value="${k}"><img src="${buttonImg("trophy:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.trophy[k]||0)===0?"is-zero":""}">${state.trophy[k]||0}個</b></span></button>`).join("");
+ $("#endButtons").innerHTML=ENDS.map(k=>`<button class="image-choice compact-count-choice" data-choice="end" data-value="${k}"><img src="${buttonImg("end:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.end[k]||0)===0?"is-zero":""}">${state.end[k]||0}枚</b></span></button>`).join("");
+ $("#voiceStats").innerHTML=pieStats(state.voice,"ボイス",voiceWasOpen);$("#introStats").innerHTML=pieStats(state.intro,"キャラ紹介",introWasOpen);$("#trophyStats").innerHTML="";$("#endStats").innerHTML="";
 }
 function itemEarlySmallYoshi(){
  const positions=[];
@@ -220,7 +244,7 @@ function czPtEvidence(){
 }
 function chanceRateStats(){
  return ["無名","生駒","カバネ"].map(name=>{
-  const d=state.chance[name]||{};const total=totalObj(d),flash=Number(d.flash)||0;const ratio=total?flash/total:null;
+  const d=state.chance[name]||{};const total=chanceFlashTotal(d),flash=Number(d.flash)||0;const ratio=total?flash/total:null;
   let judgement="データ不足",signal="none",level="参考";
   if(total){
    if(ratio>0.25){judgement="高設定確定";signal="high-confirm";level="確定"}
@@ -237,7 +261,7 @@ function chanceEvidence(){
  const rank={"参考":0,"期待度UP":1,"期待高":2,"濃厚":3,"確定":4};
  const level=valid.reduce((best,x)=>rank[x.level]>rank[best]?x.level:best,"参考");
  const text=stats.map(x=>x.total?`${x.name} ${rate(x.flash,x.total)}（${x.flash}/${x.total}）→ ${x.judgement}`:`${x.name} データ不足`).join(" / ");
- return {level,text:`チャンス目発光率（発光のみ）：${text}`,stats};
+ return {level,text:`チャンス目発光率（発光÷無発光+発光）：${text}`,stats};
 }
 function voiceEvidence(){const n=totalObj(state.voice);if(!n)return {level:"参考",text:"キャラボイス：データ不足"};const m=state.voice.男性/n,f=state.voice.女性/n,weak=state.voice.景之弱/n; if(state.voice.景之中>=3||state.voice.景之強>=3)return {level:"濃厚",text:"景之中/景之強が3回以上 → 高設定濃厚"};if(state.voice.特殊)return {level:"期待度UP",text:"特殊ボイス → 設定2以上示唆"};if(state.voice.無し)return {level:"期待高",text:"無しボイス → 設定5以上示唆"};if(m>.6)return {level:"期待高",text:"男性ボイス60%超 → 設定3 or 5期待高"};if(f>.6)return {level:"期待高",text:"女性ボイス60%超 → 偶数設定期待高"};if(weak>.16)return {level:"期待高",text:"景之弱16%超 → 高設定期待高"};return {level:"参考",text:`キャラボイス：男性${rate(state.voice.男性,n)} / 女性${rate(state.voice.女性,n)} / 景之弱${rate(state.voice.景之弱,n)}`}}
 function introEvidence(){const n=totalObj(state.intro);if(!n)return {level:"参考",text:"キャラ紹介：データ不足"};if(state.intro.美馬)return {level:"確定",text:"キャラ紹介・美馬 → 高設定確定"};const m=state.intro.男性/n,f=state.intro.女性/n;if(m>.6)return {level:"期待高",text:"キャラ紹介・男性60%超 → 設定3 or 5期待高"};if(f>.6)return {level:"期待高",text:"キャラ紹介・女性60%超 → 偶数設定期待高"};return {level:"参考",text:`キャラ紹介：男性${rate(state.intro.男性,n)} / 女性${rate(state.intro.女性,n)}`}}
@@ -285,8 +309,8 @@ function finalSetting(){
  const max=Math.max(...Object.values(scores));const tops=Object.entries(scores).filter(([,v])=>v===max).map(([s])=>s);return {evidence,candidates:candidates.length?candidates:[1,2,3,4,5,6],scores,tops};
 }
 function normalPredict(){
- const f=finalSetting();const lines=f.evidence.map((e,i)=>`<div class="setting-item"><span>${i+1}. ${e===f.evidence[3]?e.text:esc(e.text)}</span><b>${stars(levelRank[e.level]||0)}</b><em class="setting-level level-${e.level}">${e.level}</em></div>`).join("");
- return `<div class="final-setting"><strong>総合設定予想：${f.tops.map(x=>`設定${x}`).join(" or ")}</strong><small>優先順位：確定 ＞ 濃厚 ＞ 期待高 ＞ 期待度UP ＞ 参考</small></div>${lines}`;
+ const f=finalSetting();const lines=f.evidence.map((e,i)=>`<div class="setting-item"><span>${i+1}. ${e===f.evidence[3]?e.text:esc(e.text)}</span><em class="setting-level level-${e.level}">${e.level}</em></div>`).join("");
+ return `<div class="final-setting"><strong>予想：${f.tops.map(x=>`設定${x}`).join(" or ")}</strong><small>優先度：確定 ＞ 濃厚 ＞ 期待高 ＞ 期待度UP ＞ 参考</small></div>${lines}`;
 }
 function bonusPredict(){return normalPredict()}
 function renderPredictions(){
@@ -299,19 +323,38 @@ function renderPredictions(){
 }
 
 function rinneLevelForCycle(cycle){let level=0;for(const x of state.sea.rinne){const cs=x.cycles||[];const applies=(x.type==="輪廻"||x.type==="六根清浄")?x.cycle===cycle:cs.includes(cycle);if(!applies)continue;if(x.type==="輪廻"||x.type==="六根清浄")level=Math.max(level,7);else if(x.type==="好機有")level=Math.max(level,5);else if(x.type==="兆し有")level=Math.max(level,4)}return level}
-function charCandidates(cycle=state.sea.cycle){const data=getSeaCycle(cycle).char;const scores={1:0,2:0,3:0,4:0,5:0,6:0,7:0};for(const [name,c] of Object.entries(data))for(const lv of SEA_CHAR_HINT[name]||[])scores[lv]+=c;const max=Math.max(...Object.values(scores));return max?Object.entries(scores).filter(([,v])=>v===max).map(([k])=>Number(k)):[]}
+function charEvidenceCounts(cycle=state.sea.cycle){
+ const data=getSeaCycle(cycle).char||{};
+ const counts={1:0,2:0,3:0,4:0,5:0,6:0,7:0};
+ for(const [name,rawCount] of Object.entries(data)){
+   const n=Math.max(0,Number(rawCount)||0);
+   for(const lv of SEA_CHAR_HINT[name]||[]) counts[lv]+=n;
+ }
+ return counts;
+}
+function charCandidates(cycle=state.sea.cycle){
+ const counts=charEvidenceCounts(cycle);
+ return Object.entries(counts).filter(([,v])=>v>0).map(([k])=>Number(k));
+}
 function stageCandidates(cycle=state.sea.cycle){const data=getSeaCycle(cycle).stage;const scores={1:0,2:0,3:0,4:0,5:0,6:0,7:0};for(const [name,c] of Object.entries(data)){const row=SEA_STAGE_HINT[name];if(row)for(let lv=1;lv<=7;lv++)scores[lv]+=row[lv]*c}const max=Math.max(...Object.values(scores));return max?Object.entries(scores).filter(([,v])=>v===max).map(([k])=>Number(k)):[]}
 function formatLvCandidates(cs){return cs.length?cs.map(x=>`Lv${x}`).join("・"):"不明"}
 function rinnePredictionForCycle(cycle){const r=rinneLevelForCycle(cycle);if(r===7)return {text:"Lv7濃厚",html:"Lv7濃厚"};if(r===5)return {text:"Lv5以上期待度UP",html:"Lv5以上期待度UP"};if(r===4)return {text:"Lv4以上期待度UP",html:"Lv4以上期待度UP"};return null}
 function combinedSeaPrediction(cycle){
  const rinne=rinnePredictionForCycle(cycle);
  if(rinne)return rinne;
- const cc=charCandidates(cycle),sc=stageCandidates(cycle);
- if(!cc.length&&!sc.length)return {text:"不明",html:"不明"};
- const union=[...new Set([...cc,...sc])].sort((a,b)=>a-b);
- const overlap=new Set(cc.filter(x=>sc.includes(x)));
+ const charCounts=charEvidenceCounts(cycle);
+ const sc=stageCandidates(cycle);
+ const evidence={1:charCounts[1]||0,2:charCounts[2]||0,3:charCounts[3]||0,4:charCounts[4]||0,5:charCounts[5]||0,6:charCounts[6]||0,7:charCounts[7]||0};
+ // ステージ推測は従来どおり、その周期で最も強いLv候補を1つの根拠として加算。
+ for(const lv of sc) evidence[lv]=(evidence[lv]||0)+1;
+ const union=Object.entries(evidence).filter(([,v])=>v>0).map(([k])=>Number(k)).sort((a,b)=>a-b);
+ if(!union.length)return {text:"不明",html:"不明"};
  const text=union.map(x=>`Lv${x}`).join("・");
- const html=union.map(x=>overlap.has(x)?`<span class="sea-overlap">Lv${x}</span>`:`<span>Lv${x}</span>`).join('<span class="sea-sep">・</span>');
+ const html=union.map(x=>{
+   const n=evidence[x]||0;
+   const cls=n>=3?"sea-overlap-strong":n>=2?"sea-overlap":"";
+   return cls?`<span class="${cls}">Lv${x}</span>`:`<span>Lv${x}</span>`;
+ }).join('<span class="sea-sep">・</span>');
  return {text,html};
 }
 function seaPredictForCycle(cycle){return combinedSeaPrediction(cycle).text}
@@ -327,12 +370,28 @@ function recordBonusResult(type,games,cyc,source){
 }
 function openCz(kind){
  const pts=chancePointsSnapshot();
- const lifeButtons=kind==="生駒"?`<div class="modal-section"><b>生駒CZ LIFE</b>${[3,2,1].map(l=>{const d=state.ikoma[l]||{attack:0,avoid:0};return `<div class="life-inline"><strong>LIFE ${l}</strong><button class="image-action-button" data-life="${l}" data-life-action="attack"><img src="${buttonImg("result:襲撃")}"><span>襲撃 ${d.attack}回</span></button><button class="image-action-button" data-life="${l}" data-life-action="avoid"><img src="${buttonImg("result:回避")}"><span>回避 ${d.avoid}回</span></button></div>`}).join("")}</div>`:"";
- const recordButton=kind==="生駒"?'<button class="primary modal-record-btn" id="czRecord">記録する</button>':'';
- modalBase(`<h2>${kind}CZ当選</h2><div class="prediction">現在ゲーム数：<strong>${state.currentGames}G</strong><br>無名 ${pts.無名}pt / 生駒 ${pts.生駒}pt / カバネ ${pts.カバネ}pt</div><div class="modal-section"><b>結果</b><div class="three-col result-buttons">${["失敗","駿城","EP"].map(x=>`<button type="button" class="image-result-button" data-cz-result="${x}"><img src="${buttonImg("result:"+x)}"><span>${x}</span></button>`).join("")}</div></div>${lifeButtons}${recordButton}`);
- let result="";
- const hitGames=Math.max(0,Number(state.currentGames)||0);
+ let hitGames=Math.max(0,Number(state.currentGames)||0);
  const hitCycle=state.sea.cycle;
+ const gameAdjust=`<div class="ikoma-game-adjust cz-game-adjust"><button type="button" data-cz-game="-1" data-tap-label="-1">−1G</button><div>現在ゲーム数 <strong id="czModalGames">${hitGames}G</strong></div><button type="button" data-cz-game="1" data-tap-label="+1">＋1G</button></div>`;
+ const lifeButtons=kind==="生駒"?`<div class="modal-section ikoma-life-section"><b>生駒CZ LIFE</b><div class="ikoma-life-grid">${[3,2,1].map(l=>{const d=state.ikoma[l]||{attack:0,avoid:0};return `<div class="life-inline compact-life"><strong>LIFE ${l}</strong><button class="image-action-button" data-life="${l}" data-life-action="attack"><img src="${buttonImg("result:襲撃")}"><span>襲撃 ${d.attack}回</span></button><button class="image-action-button" data-life="${l}" data-life-action="avoid"><img src="${buttonImg("result:回避")}"><span>回避 ${d.avoid}回</span></button></div>`}).join("")}</div></div>`:"";
+ const recordButton=kind==="生駒"?'<button class="primary modal-record-btn" id="czRecord">記録する</button>':'';
+ modalBase(`<h2>${kind}CZ当選</h2>${gameAdjust}<div class="modal-section"><b>結果</b><div class="three-col result-buttons compact-result-buttons" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px">${["失敗","駿城","EP"].map(x=>`<button type="button" class="image-result-button" style="grid-column:auto;width:100%;min-width:0" data-cz-result="${x}"><img src="${buttonImg("result:"+x)}"><span>${x}</span></button>`).join("")}</div></div>${lifeButtons}${recordButton}`);
+ let result="";
+ const updateCzGames=(delta)=>{
+   const d=Number(delta)||0;
+   if(!d)return false;
+   if(d<0 && (hitGames<=0||state.totalGames<=0))return false;
+   pushUndo();
+   state.totalGames=Math.max(0,state.totalGames+(d>0?1:-1));
+   state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+   hitGames=Math.max(0,Number(state.currentGames)||0);
+   saveState();
+   const el=$("#czModalGames");if(el)el.textContent=`${hitGames}G`;
+   return true;
+ };
+ $$('[data-cz-game]').forEach(b=>b.onclick=()=>{
+   if(updateCzGames(b.dataset.czGame)) successfulTapFeedback(b,b.dataset.tapLabel||'');
+ });
  const finishSimple=(finalResult)=>{
    pushUndo();
    const success=finalResult!=="失敗";
@@ -348,8 +407,6 @@ function openCz(kind){
  };
  const finishShun=(afterResult)=>{
    pushUndo();
-   // 無名CZ・生駒CZは駿城に当選した時点でCZ成功。
-   // 駿城⇒EP / 駿城⇒失敗のどちらも、CZ1回・成功1回として集計する。
    state.cz[kind].win++;
    state.cz[kind].success++;
    const shunToEp=afterResult==='EP';
@@ -363,12 +420,9 @@ function openCz(kind){
      date:new Date().toLocaleString('ja-JP')
    });
    state.chancePts[kind]=0;
-
-   // 駿城ボーナス自体の当選はボーナス記録に残す。
    recordBonusResult('駿城',hitGames,hitCycle,kind+'CZ→駿城');
-
-   // 駿城ボーナス消化分として必ず22G加算。
-   state.totalGames+=22;
+   state.totalGames+=21;
+   if(!shunToEp) state.gameBase=(state.gameBase||0)+21;
    state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
 
    if(shunToEp){
@@ -378,29 +432,19 @@ function openCz(kind){
      saveState();closeModal();render();
      toast(`${kind}CZ 駿城 ${hitGames}G → EP ${epGames}G をCZ1回・成功1回として記録しました`);
    }else{
-     // 無名CZ・生駒CZ経由の駿城失敗では周期は進めない。
      saveState();closeModal();render();
-     toast(`${kind}CZ 駿城 ${hitGames}G → 失敗（+22G）をCZ1回・成功1回として記録しました`);
+     toast(`${kind}CZ 駿城 ${hitGames}G → 失敗（総ゲーム数+21G）をCZ1回・成功1回として記録しました`);
    }
  };
  const openShunFollowup=()=>{
-   const projected=hitGames+22;
-   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">${kind}CZから駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に22G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：駿城終了として記録 / EP：+22G後のゲーム数でEP当選として周期をリセット</p>`);
+   const projected=hitGames+21;
+   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">${kind}CZから駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に21G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：駿城終了として記録 / EP：+21G後のゲーム数でEP当選として周期をリセット</p>`);
    $$('#modalRoot [data-shun-follow]').forEach(b=>b.onclick=()=>finishShun(b.dataset.shunFollow));
  };
  $$('#modalRoot [data-cz-result]').forEach(b=>b.addEventListener('click',()=>{
    result=b.dataset.czResult;
-   if(result==='駿城'){
-     // 全CZ共通：駿城を押した時点で即「失敗 / EP」の2択へ進む。
-     openShunFollowup();
-     return;
-   }
-   if(kind==='無名'){
-     // 無名CZは失敗/EPを押した時点で即記録。
-     finishSimple(result);
-     return;
-   }
-   // 生駒CZは従来通り、失敗/EPを選択してから「記録する」。
+   if(result==='駿城'){openShunFollowup();return}
+   if(kind==='無名'){finishSimple(result);return}
    $$('#modalRoot [data-cz-result]').forEach(x=>x.classList.remove('selected'));
    b.classList.add('selected');
  }));
@@ -408,12 +452,28 @@ function openCz(kind){
  const czRecord=$('#czRecord');
  if(czRecord)czRecord.onclick=()=>{if(!result)return toast('結果を選択してください');if(result==='駿城')return openShunFollowup();finishSimple(result)};
 }
+
 function openPeriodCZ(){
  const pts=state.chancePts.カバネ||0;
  const cyc=state.sea.cycle;
- const hitGames=Math.max(0,Number(state.currentGames)||0);
- modalBase(`<h2>周期CZ</h2><div class="prediction">現在周期：<strong>${cyc}周期</strong><br>当選時カバネPT：<strong>${pts}pt</strong></div><div class="three-col result-buttons"><button type="button" class="image-result-button" data-period-result="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button type="button" class="image-result-button" data-period-result="駿城"><img src="${buttonImg("result:駿城")}"><span>駿城</span></button><button type="button" class="image-result-button" data-period-result="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div>`);
+ let hitGames=Math.max(0,Number(state.currentGames)||0);
+ modalBase(`<h2>周期CZ</h2><div class="ikoma-game-adjust cz-game-adjust"><button type="button" data-period-game="-1" data-tap-label="-1">−1G</button><div>現在ゲーム数 <strong id="periodModalGames">${hitGames}G</strong></div><button type="button" data-period-game="1" data-tap-label="+1">＋1G</button></div><div class="three-col result-buttons compact-result-buttons" style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:5px"><button type="button" class="image-result-button" style="grid-column:auto;width:100%;min-width:0" data-period-result="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button type="button" class="image-result-button" style="grid-column:auto;width:100%;min-width:0" data-period-result="駿城"><img src="${buttonImg("result:駿城")}"><span>駿城</span></button><button type="button" class="image-result-button" style="grid-column:auto;width:100%;min-width:0" data-period-result="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div>`);
  let result=null;
+ const updatePeriodGames=(delta)=>{
+   const d=Number(delta)||0;
+   if(!d)return false;
+   if(d<0 && (hitGames<=0||state.totalGames<=0))return false;
+   pushUndo();
+   state.totalGames=Math.max(0,state.totalGames+(d>0?1:-1));
+   state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+   hitGames=Math.max(0,Number(state.currentGames)||0);
+   saveState();
+   const el=$("#periodModalGames");if(el)el.textContent=`${hitGames}G`;
+   return true;
+ };
+ $$('[data-period-game]').forEach(b=>b.onclick=()=>{
+   if(updatePeriodGames(b.dataset.periodGame)) successfulTapFeedback(b,b.dataset.tapLabel||'');
+ });
  const finishSimple=(result)=>{
    pushUndo();
    const success=result!=="fail";
@@ -436,8 +496,11 @@ function openPeriodCZ(){
    state.chancePts.カバネ=0;
    recordBonusResult('駿城',hitGames,cyc,'周期CZ→駿城');
 
-   // 駿城ボーナス消化分として必ず22G加算。
-   state.totalGames+=22;
+   // 駿城ボーナス消化分として総ゲーム数に21G加算。
+   // 駿城⇒失敗時のCZ履歴gamesはhitGames（加算前）を維持する。
+   state.totalGames+=21;
+   // 周期CZでも駿城⇒失敗は総ゲーム数だけ+21G。現在ゲーム数は駿城当選時のまま維持する。
+   if(afterResult!=='EP') state.gameBase=(state.gameBase||0)+21;
    state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
 
    // 周期CZのポイント履歴は駿城後の最終結果まで1つにまとめて表示する。
@@ -461,12 +524,12 @@ function openPeriodCZ(){
      state.sea.cycle=cyc>=6?1:cyc+1;
      getSeaCycle(state.sea.cycle);
      saveState();closeModal();render();
-     toast(`駿城 ${hitGames}G → 失敗（+22G）を記録 → ${state.sea.cycle}周期へ進みました`);
+     toast(`駿城 ${hitGames}G → 失敗（総ゲーム数+21G）を記録 → ${state.sea.cycle}周期へ進みました`);
    }
  };
  const openShunFollowup=()=>{
-   const projected=hitGames+22;
-   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に22G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：次の周期へ進む / EP：EP当選として周期をリセット</p>`);
+   const projected=hitGames+21;
+   modalBase(`<h2>駿城ボーナス</h2><div class="prediction">駿城ボーナス当選：<strong>${hitGames}G</strong><br>終了時に21G加算 → <strong>${projected}G</strong></div><div class="two-col shun-followup-buttons"><button class="image-result-button" data-shun-follow="fail"><img src="${buttonImg("result:失敗")}"><span>失敗</span></button><button class="image-result-button" data-shun-follow="EP"><img src="${buttonImg("result:EP")}"><span>EP</span></button></div><p class="muted">失敗：次の周期へ進む / EP：EP当選として周期をリセット</p>`);
    $$('#modalRoot [data-shun-follow]').forEach(b=>b.onclick=()=>finishShun(b.dataset.shunFollow));
  };
  $$('#modalRoot [data-period-result]').forEach(b=>b.addEventListener('click',()=>{
@@ -498,8 +561,88 @@ function openSeaChoice(kind){
 }
 function openHistory(){modalBase(`<h2>履歴</h2>${historyHtmlFromData(state)}`)}
 function openSettings(){modalBase(`<h2>画像・UI設定</h2><div class="modal-section"><b>全体テーマ</b><div class="choice-grid"><button data-theme="dark">ダーク</button><button data-theme="light">ライト</button></div></div><div class="modal-section"><b>背景</b><div class="choice-grid"><button class="bg-choice ${state.ui.background==="steel-dark"?"selected":""}" data-bg="steel-dark" style="background-image:linear-gradient(#0006,#0008),url(assets/backgrounds/steel-dark.svg)">鋼鉄</button><button class="bg-choice ${state.ui.background==="rail-night"?"selected":""}" data-bg="rail-night" style="background-image:linear-gradient(#0006,#0008),url(assets/backgrounds/rail-night.svg)">夜の線路</button><button class="bg-choice ${state.ui.background==="iron-red"?"selected":""}" data-bg="iron-red" style="background-image:linear-gradient(#0006,#0008),url(assets/backgrounds/iron-red.svg)">鉄・赤</button><button class="bg-choice ${state.ui.background==="black-minimal"?"selected":""}" data-bg="black-minimal" style="background-image:linear-gradient(#0006,#0008),url(assets/backgrounds/black-minimal.svg)">黒・ミニマル</button></div></div><div class="modal-section"><b>枠・アクセントカラー</b><div class="color-row"><span>カウンターなどの枠色</span><input id="borderColor" type="color" value="${state.ui.borderColor||"#303640"}"></div><div class="color-row"><span>強調色</span><input id="accentColor" type="color" value="${state.ui.accent||"#b44b34"}"></div></div><div class="modal-section"><b>画像ファイル</b><p class="muted">「画像選択」で登録した画像はボタンに即反映されます。登録画像を削除したい場合はデータリセットが必要です。</p>${Object.entries({...IMAGE_KEYS,...Object.fromEntries(Object.keys(BONUS_IMAGE_KEYS).map(k=>[k,BONUS_IMAGE_KEYS[k]]))}).map(([k,v])=>`<div class="image-setting"><img src="${(BONUS_IMAGE_KEYS[k]?buttonImg(k):img(k))}"><span>${esc(k)}<br><small>${v}</small></span><label class="file-btn">画像選択<input type="file" accept="image/*" data-image-key="${k}" hidden></label></div>`).join("")}<div class="modal-section"><b>UI</b><div class="field"><label><input id="compactUI" type="checkbox" ${state.ui.compact?"checked":""}> コンパクト表示</label></div></div>`);$$('[data-theme]').forEach(b=>b.onclick=()=>{state.ui.theme=b.dataset.theme;saveState();applyUI();openSettings()});$$('[data-bg]').forEach(b=>b.onclick=()=>{state.ui.background=b.dataset.bg;saveState();applyUI();openSettings()});$("#borderColor").onchange=e=>{state.ui.borderColor=e.target.value;saveState();applyUI()};$("#accentColor").onchange=e=>{state.ui.accent=e.target.value;saveState();applyUI()};$("#compactUI").onchange=e=>{state.ui.compact=e.target.checked;saveState();applyUI()};$$("[data-image-key]").forEach(inp=>inp.onchange=e=>{const f=e.target.files?.[0];if(!f)return;const r=new FileReader();r.onload=async()=>{const key=e.target.dataset.imageKey;state.ui.images[key]=r.result;await setStoredImage(key,r.result);saveState();openSettings();toast("画像を保存しました")};r.readAsDataURL(f)})}
-function applyUI(){document.documentElement.style.setProperty("--bg",state.ui.theme==="light"?"#f2f3f5":"#0d0f13");document.documentElement.style.setProperty("--card",state.ui.theme==="light"?"#fff":"#171a20");document.documentElement.style.setProperty("--card2",state.ui.theme==="light"?"#e7e9ed":"#20242c");document.documentElement.style.setProperty("--text",state.ui.theme==="light"?"#15171b":"#f4f5f7");document.documentElement.style.setProperty("--border",state.ui.borderColor||"#303640");document.documentElement.style.setProperty("--accent",state.ui.accent||"#b44b34");document.documentElement.style.setProperty("--page-bg",`url("assets/backgrounds/${state.ui.background||"steel-dark"}.svg")`);document.body.classList.toggle("compact",state.ui.compact)}
+function applyUI(){const light=state.ui.theme==="light";document.documentElement.style.setProperty("--bg",light?"#f4f5f7":"#0d0f13");document.documentElement.style.setProperty("--card",light?"#ffffff":"#171a20");document.documentElement.style.setProperty("--card2",light?"#e3e6eb":"#20242c");document.documentElement.style.setProperty("--text",light?"#111318":"#f4f5f7");document.documentElement.style.setProperty("--muted",light?"#535b67":"#9ba2ad");document.documentElement.style.setProperty("--warn",light?"#9a5a00":"#f0bd4f");document.documentElement.style.setProperty("--border",light?"#aeb5bf":(state.ui.borderColor||"#303640"));document.documentElement.style.setProperty("--accent",state.ui.accent||"#b44b34");document.documentElement.style.setProperty("--page-bg",`url("assets/backgrounds/${state.ui.background||"steel-dark"}.svg")`);document.body.classList.toggle("compact",state.ui.compact);document.body.classList.toggle("light-theme",light)}
 function changeCycle(n){if(state.sea.cycle===n)return;pushUndo();state.sea.cycle=n;getSeaCycle(n);saveState();render();toast(`${n}周期に変更しました`) }
+
+function lightHaptic(){
+  try{if(typeof navigator.vibrate==="function")navigator.vibrate(12)}catch{}
+}
+function tapIncrementLabel(b){
+  if(!b)return "";
+  if(b.dataset.chance){
+    const k=b.dataset.key;
+    const pts=Number(POINTS?.[k]??0);
+    return pts>0?`+${pts}`:"";
+  }
+  if(b.dataset.action==='games-add'){const v=Number(b.dataset.value)||0;return v>0?`+${v}G`:""}
+  if(b.dataset.action==='games-minus')return "-1G";
+  if(b.dataset.action==='bell-plus')return "+1";
+  if(b.dataset.action==='bell-minus')return "-1";
+  if(b.dataset.item)return "+1";
+  if(b.dataset.choice)return "+1";
+  if(b.dataset.lifeAction)return "+1";
+  if(b.dataset.seaChoice)return "+1";
+  if(b.dataset.rinneType||b.dataset.rinneCycle)return "+1";
+  return "";
+}
+function showTapPop(b,label){
+  if(!label||!b?.getBoundingClientRect)return;
+  const r=b.getBoundingClientRect();
+  const pop=document.createElement("span");
+  pop.className="tap-pop";
+  pop.textContent=label;
+  pop.style.left=`${r.left+r.width/2}px`;
+  pop.style.top=`${r.top+Math.min(r.height*.48,44)}px`;
+  document.body.appendChild(pop);
+  setTimeout(()=>pop.remove(),650);
+}
+function pressVisual(b){
+  if(!b)return;
+  b.classList.add("tap-pressed");
+  clearTimeout(b._tapReleaseTimer);
+  b._tapReleaseTimer=setTimeout(()=>b.classList.remove("tap-pressed"),150);
+}
+function updateStickyOffsets(){
+  const topbar=document.querySelector(".topbar");
+  const tabs=document.querySelector(".sticky-tabs");
+  const root=document.documentElement;
+  if(topbar)root.style.setProperty("--topbar-h",`${Math.ceil(topbar.getBoundingClientRect().height)}px`);
+  if(tabs)root.style.setProperty("--tabs-h",`${Math.ceil(tabs.getBoundingClientRect().height)}px`);
+}
+
+// v74: タップ演出はpointerdownではなく、実際にclickが成立した時だけ出す。
+// 入力が成立した後だけ押下フィードバックを出す。
+function successfulTapFeedback(b,label){
+ if(!b||b.disabled)return;
+ // Capture the button position before render() replaces count buttons.
+ const r=b.getBoundingClientRect?.();
+ pressVisual(b);
+ lightHaptic();
+ const text=label!==undefined?label:tapIncrementLabel(b);
+ if(r&&r.width>0&&r.height>0){
+   const flash=document.createElement("span");
+   flash.className="tap-press-overlay";
+   flash.style.left=`${r.left}px`;
+   flash.style.top=`${r.top}px`;
+   flash.style.width=`${r.width}px`;
+   flash.style.height=`${r.height}px`;
+   const br=getComputedStyle(b).borderRadius;
+   if(br)flash.style.borderRadius=br;
+   document.body.appendChild(flash);
+   setTimeout(()=>flash.remove(),260);
+   if(text){
+     const pop=document.createElement("span");
+     pop.className="tap-pop";
+     pop.textContent=text;
+     pop.style.left=`${r.left+r.width/2}px`;
+     pop.style.top=`${r.top+Math.min(r.height*.48,44)}px`;
+     document.body.appendChild(pop);
+     setTimeout(()=>pop.remove(),650);
+   }
+ }else{
+   showTapPop(b,text);
+ }
+}
 
 document.addEventListener("click",e=>{
  const b=e.target.closest?.("button");if(!b)return;
@@ -509,26 +652,56 @@ document.addEventListener("click",e=>{
    if(b.dataset.deleteRecord){if(confirm('この保存記録を削除しますか？')){pushUndo();deletePastRecord(b.dataset.deleteRecord);render();toast('保存記録を削除しました')}return}
    if(b.dataset.recordNoteSave){const ta=document.querySelector(`[data-record-note="${CSS.escape(b.dataset.recordNoteSave)}"]`);if(updatePastRecordNote(b.dataset.recordNoteSave,ta?.value||'')){renderPastRecords();toast('メモを保存しました')}else toast('メモの保存に失敗しました');return}
    if(b.dataset.action==='undo'){undoLast();return}
-   if(b.dataset.chance){pushUndo();const d=state.chance[b.dataset.chance],k=b.dataset.key;d[k]++;state.chancePts[b.dataset.chance]+=POINTS[k];saveState();render();return}
-   if(b.dataset.action==='games-add'){pushUndo();state.totalGames+=Number(b.dataset.value)||0;saveState();render();return}
-   if(b.dataset.action==='games-minus'){pushUndo();state.totalGames=Math.max(0,state.totalGames-1);saveState();render();return}
+   if(b.dataset.chance){pushUndo();const d=state.chance[b.dataset.chance],k=b.dataset.key;d[k]++;state.chancePts[b.dataset.chance]+=POINTS[k];saveState();successfulTapFeedback(b);b.dataset.feedbackDone='1';render();return}
+   if(b.dataset.action==='games-add'){pushUndo();state.totalGames=Math.max(0,state.totalGames+(Number(b.dataset.value)||0));state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));saveState();successfulTapFeedback(b);b.dataset.feedbackDone='1';render();return}
+   if(b.dataset.action==='games-minus'){const before=state.totalGames;pushUndo();state.totalGames=Math.max(0,state.totalGames-1);saveState();if(state.totalGames!==before){successfulTapFeedback(b,'-1G');b.dataset.feedbackDone='1';}render();return}
    if(b.dataset.action==='games-input'){
-     let inputValue=String(Math.max(0,Number(state.totalGames)||0));
-     const draw=()=>{const out=$("#totalGamesKeypadValue");if(out)out.textContent=(inputValue||"0")+"G"};
-     modalBase(`<h2>総ゲーム数</h2><div class="keypad-display" id="totalGamesKeypadValue">${inputValue}G</div><div class="number-keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-keypad-number="${n}">${n}</button>`).join("")}<button class="keypad-zero" data-keypad-number="0">0</button><button class="keypad-delete" data-keypad-delete>×</button></div><button class="primary modal-record-btn" id="modalSave">保存</button>`);
-     $$('#modalRoot [data-keypad-number]').forEach(k=>k.onclick=()=>{const n=k.dataset.keypadNumber;if(inputValue==='0')inputValue=n;else inputValue+=n;inputValue=inputValue.replace(/^0+(?=\d)/,'');draw()});
-     $('#modalRoot [data-keypad-delete]').onclick=()=>{inputValue=inputValue.slice(0,-1);draw()};
-     $("#modalSave").onclick=()=>{pushUndo();state.totalGames=Math.max(0,Number(inputValue)||0);state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));saveState();closeModal();render();toast("総ゲーム数を更新しました")};return}
-   if(b.dataset.action==='bell-plus'){pushUndo();state.bell.count++;saveState();render();return}
-   if(b.dataset.action==='bell-minus'){pushUndo();state.bell.count=Math.max(0,state.bell.count-1);saveState();render();return}
+     let inputMode='total';
+     let fresh={current:true,total:true};
+     let values={
+       current:String(Math.max(0,Number(state.currentGames)||0)),
+       total:String(Math.max(0,Number(state.totalGames)||0))
+     };
+     const draw=()=>{
+       const out=$("#gamesKeypadValue");
+       const title=$("#gamesKeypadTitle");
+       if(out)out.textContent=(values[inputMode]||"0")+"G";
+       if(title)title.textContent=inputMode==='current'?"現在ゲーム数":"総ゲーム数";
+       $$('#modalRoot [data-game-input-mode]').forEach(x=>x.classList.toggle('selected',x.dataset.gameInputMode===inputMode));
+     };
+     modalBase(`<div class="game-input-top"><div class="game-input-switch"><button data-game-input-mode="total" class="selected">総ゲーム数</button><button data-game-input-mode="current">現在ゲーム数</button></div></div><h2 id="gamesKeypadTitle">総ゲーム数</h2><div class="keypad-display" id="gamesKeypadValue">${values.total}G</div><div class="number-keypad">${[1,2,3,4,5,6,7,8,9].map(n=>`<button data-keypad-number="${n}">${n}</button>`).join("")}<button class="keypad-zero" data-keypad-number="0">0</button><button class="keypad-delete" data-keypad-delete>×</button></div><button class="primary modal-record-btn" id="modalSave">保存</button>`);
+     $$('#modalRoot [data-game-input-mode]').forEach(x=>x.onclick=()=>{inputMode=x.dataset.gameInputMode;draw()});
+     $$('#modalRoot [data-keypad-number]').forEach(k=>k.onclick=()=>{const n=k.dataset.keypadNumber;let v=fresh[inputMode]?'':(values[inputMode]||'');fresh[inputMode]=false;if(v==='0')v=n;else v+=n;values[inputMode]=v.replace(/^0+(?=\d)/,'');draw()});
+     $('#modalRoot [data-keypad-delete]').onclick=()=>{if(fresh[inputMode]){values[inputMode]='';fresh[inputMode]=false}else values[inputMode]=(values[inputMode]||'').slice(0,-1);draw()};
+     $("#modalSave").onclick=()=>{
+       pushUndo();
+       if(inputMode==='total'){
+         state.totalGames=Math.max(0,Number(values.total)||0);
+         state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
+         toast("総ゲーム数を更新しました");
+       }else{
+         const current=Math.max(0,Number(values.current)||0);
+         if(current>state.totalGames){
+           state.totalGames=current;
+           state.gameBase=0;
+         }else{
+           state.gameBase=state.totalGames-current;
+         }
+         state.currentGames=current;
+         toast("現在ゲーム数を更新しました");
+       }
+       saveState();closeModal();render();
+     };return}
+   if(b.dataset.action==='bell-plus'){pushUndo();state.bell.count++;saveState();successfulTapFeedback(b,'+1');b.dataset.feedbackDone='1';render();return}
+   if(b.dataset.action==='bell-minus'){const before=state.bell.count;pushUndo();state.bell.count=Math.max(0,state.bell.count-1);saveState();if(state.bell.count!==before){successfulTapFeedback(b,'-1');b.dataset.feedbackDone='1';}render();return}
    if(b.dataset.action==='cz-win'){openCz(b.dataset.cz);return}
    if(b.dataset.action==='period-cz'){openPeriodCZ();return}
-   if(b.dataset.item){pushUndo();state.items[b.dataset.item]=(state.items[b.dataset.item]||0)+1;state.itemOrder.push({item:b.dataset.item,date:new Date().toLocaleString('ja-JP')});saveState();render();return}
+   if(b.dataset.item){pushUndo();state.items[b.dataset.item]=(state.items[b.dataset.item]||0)+1;state.itemOrder.push({item:b.dataset.item,date:new Date().toLocaleString('ja-JP')});saveState();successfulTapFeedback(b,'+1');b.dataset.feedbackDone='1';render();return}
    if(b.dataset.action==='rinne'){openRinne();return}
    if(b.dataset.action==='sea-char'){openSeaChoice('char');return}
    if(b.dataset.action==='sea-stage'){openSeaChoice('stage');return}
    // LIFE buttons inside the CZ modal have their own handler. Handling them here too caused duplicate input in v16.
-   if(b.dataset.choice){pushUndo();state[b.dataset.choice][b.dataset.value]++;saveState();render();return}
+   if(b.dataset.choice){pushUndo();state[b.dataset.choice][b.dataset.value]++;saveState();successfulTapFeedback(b,'+1');b.dataset.feedbackDone='1';render();return}
    if(b.dataset.action==='history'){openHistory();return}
    if(b.dataset.action==='open-settings'){openSettings();return}
    if(b.dataset.action==='reset'){
@@ -543,6 +716,21 @@ document.addEventListener("click",e=>{
    }
  }catch(err){console.error('operation failed',err)}
 });
+// 通常ボタンはメインの入力処理が完了した後にフィードバック。
+document.addEventListener("click",e=>{
+ const b=e.target.closest?.("button,.file-btn");
+ if(!b||b.disabled)return;
+ if(b.dataset.feedbackDone==='1')return;
+ if(b.matches('[data-cz-game],[data-period-game]'))return;
+ // 明確に入力/操作ボタンとして扱われるものだけ反応させる。
+ const actionable = b.dataset.action || b.dataset.chance || b.dataset.item || b.dataset.choice ||
+   b.dataset.czResult || b.dataset.periodResult || b.dataset.shunFollow || b.dataset.lifeAction ||
+   b.dataset.seaChoice || b.dataset.rinneType || b.dataset.rinneCycle || b.dataset.gameInputMode ||
+   b.dataset.keypadNumber !== undefined || b.hasAttribute('data-keypad-delete') || b.id==='modalSave' ||
+   b.id==='czRecord' || b.id==='rinneSave' || b.id==='modalClose' || b.classList.contains('tab') || b.classList.contains('file-btn');
+ if(actionable) successfulTapFeedback(b);
+});
+
 document.addEventListener("change",e=>{
   const sel=e.target.closest?.("[data-record-manual-setting]");if(!sel)return;
   const id=sel.dataset.recordManualSetting;
@@ -553,9 +741,12 @@ document.addEventListener("change",e=>{
 // v44: iPhone/PWA用。アプリ本体をオフライン利用できるようService Workerを登録。
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js?v=45').catch(err => console.warn('service worker registration failed', err));
+    navigator.serviceWorker.register('./service-worker.js?v=75').catch(err => console.warn('service worker registration failed', err));
   });
 }
 render();
+updateStickyOffsets();
+window.addEventListener('resize',updateStickyOffsets);
+window.addEventListener('orientationchange',()=>setTimeout(updateStickyOffsets,120));
 loadStoredImages().then(images=>{state.ui.images=images||{};saveState();render()}).catch(err=>console.warn("image init failed",err));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});
