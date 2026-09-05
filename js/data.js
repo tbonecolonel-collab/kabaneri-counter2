@@ -1,5 +1,5 @@
-const CHANCE_TYPES=["無発光","発光","高確率","高確複合"];
-const POINTS={none:1,flash:15,high:15,combo:30};
+const CHANCE_TYPES=["無発光","発光","発光中","高確率"];
+const POINTS={none:1,flash:15,high:1,combo:15};
 const ITEMS=["ツラヌキ筒","無名の短銃","自決袋","来栖の刀","無名のけん玉","菖蒲の弓","ミヤマカラスアゲハ","小吉","中吉","大吉"];
 const VOICES=["男性","女性","景之弱","景之中","景之強","無し","特殊"];
 const INTROS=["男性","女性","美馬"];

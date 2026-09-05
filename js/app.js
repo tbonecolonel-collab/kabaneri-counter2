@@ -114,7 +114,7 @@ function renderRecordSession(rec){
 function renderChance(){
  const el=$("#chanceGrid");if(!el)return;
  const toneClass={"無名":"chance-mumei","生駒":"chance-ikoma","カバネ":"chance-kabane"};
- el.innerHTML=Object.entries(state.chance).map(([name,d])=>{const n=chanceFlashTotal(d),pt=state.chancePts[name]||0;return `<div class="chance-card ${toneClass[name]||''}"><div class="chance-head chance-head-compact"><img src="${img(name)}"><div class="chance-title"><b>${name}チャンス目</b></div><div class="chance-metrics"><div class="chance-pt-box"><span>現在PT</span><strong>${pt}<small>pt</small></strong></div><div class="chance-rate-box"><span>発光率</span><strong>${rate(d.flash,n)}</strong><small>${d.flash}/${n}</small></div></div></div><div class="counter-grid"><button class="counter-btn" data-chance="${name}" data-key="none"><b>${d.none}</b><span>無発光 +1pt</span></button><button class="counter-btn" data-chance="${name}" data-key="flash"><b>${d.flash}</b><span>発光 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="high"><b>${d.high}</b><span>高確率 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="combo"><b>${d.combo}</b><span>高確複合 +30pt</span></button></div></div>`}).join("");
+ el.innerHTML=Object.entries(state.chance).map(([name,d])=>{const n=chanceFlashTotal(d),pt=state.chancePts[name]||0;return `<div class="chance-card ${toneClass[name]||''}"><div class="chance-head chance-head-compact"><img src="${img(name)}"><div class="chance-title"><b>${name}チャンス目</b></div><div class="chance-metrics"><div class="chance-pt-box"><span>現在PT</span><strong>${pt}<small>pt</small></strong></div><div class="chance-rate-box"><span>発光率</span><strong>${rate(d.flash,n)}</strong><small>${d.flash}/${n}</small></div></div></div><div class="counter-grid"><button class="counter-btn" data-chance="${name}" data-key="none"><b>${d.none}</b><span>無発光 +1pt</span></button><button class="counter-btn" data-chance="${name}" data-key="flash"><b>${d.flash}</b><span>発光 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="high"><b>${d.high}</b><span>発光中 +1pt</span></button><button class="counter-btn" data-chance="${name}" data-key="combo"><b>${d.combo}</b><span>高確率 +15pt</span></button></div></div>`}).join("");
 }
 function czPointHistoryHtml(czName, pointKey){
  const items=(state.czHistory||[]).filter(x=>x.cz===czName).slice().reverse();
@@ -162,19 +162,30 @@ function renderSea(){
 function renderLives(){
  const el=$("#lifeCards");if(!el)return;el.innerHTML=[3,2,1].map(l=>{const d=state.ikoma[l],n=d.attack+d.avoid;return `<div class="life-card"><div class="life-title"><b>LIFE ${l}</b><span>${d.avoid}/${n}</span></div><div class="life-actions"><button class="attack-btn" data-life="${l}" data-life-action="attack">ハズレ襲撃 +1</button><button class="avoid-btn" data-life="${l}" data-life-action="avoid">ハズレ回避 +1</button></div><div class="rate">回避率 ${rate(d.avoid,n)}</div></div>`}).join("");
 }
-function pieStats(o){
+function pieStats(o,title="割合",isOpen=false){
  const entries=Object.entries(o),total=totalObj(o);
- if(!total)return `<div class="pie-empty">データなし</div>`;
+ const openAttr=isOpen?" open":"";
+ if(!total)return `<details class="ratio-details"${openAttr}><summary>割合を表示</summary><div class="pie-empty">データなし</div></details>`;
  const palette=["#d85a44","#e7a33e","#e0cd4d","#66b56f","#48a4b8","#6386d9","#a56bc6","#d56a9d"];
- let acc=0;const stops=[];
- entries.forEach(([k,v],i)=>{const from=acc;acc+=v/total*100;stops.push(`${palette[i%palette.length]} ${from}% ${acc}%`)});
- const legend=entries.map(([k,v],i)=>`<div class="pie-legend-row"><span class="pie-dot" style="background:${palette[i%palette.length]}"></span><span>${k}</span><b>${v}回</b><small>${rate(v,total)}</small></div>`).join("");
- return `<div class="pie-stats"><div class="pie-chart" style="background:conic-gradient(${stops.join(',')})"><div class="pie-hole"><b>${total}</b><small>回</small></div></div><div class="pie-legend">${legend}</div></div>`;
+ let acc=0;const stops=[];const labels=[];
+ entries.forEach(([k,v],i)=>{
+   v=Number(v)||0;if(v<=0)return;
+   const from=acc;const pct=v/total*100;acc+=pct;
+   stops.push(`${palette[i%palette.length]} ${from}% ${acc}%`);
+   const mid=((from+acc)/2)*3.6-90,rad=mid*Math.PI/180,r=36;
+   const x=50+Math.cos(rad)*r,y=50+Math.sin(rad)*r;
+   labels.push(`<span class="pie-segment-label" style="left:${x.toFixed(1)}%;top:${y.toFixed(1)}%"><b>${esc(k)}</b><small>${pct.toFixed(1)}%</small></span>`);
+ });
+ return `<details class="ratio-details"${openAttr}><summary>割合を表示</summary><div class="pie-stats pie-stats-labeled"><div class="pie-chart labeled-pie" style="background:conic-gradient(${stops.join(',')})"><div class="pie-hole"><b>${total}</b><small>回</small></div>${labels.join("")}</div></div></details>`;
 }
 function renderBonusStats(){
- const mk=o=>Object.entries(o).map(([k,v])=>`<div class="stat-row"><span>${k}</span><b>${v}回</b><small>${rate(v,totalObj(o))}</small></div>`).join("");
- $("#voiceButtons").innerHTML=VOICES.map(k=>`<button class="image-choice" data-choice="voice" data-value="${k}"><img src="${buttonImg("voice:"+k)}"><span>${k}</span></button>`).join("");$("#introButtons").innerHTML=INTROS.map(k=>`<button class="image-choice" data-choice="intro" data-value="${k}"><img src="${buttonImg("intro:"+k)}"><span>${k}</span></button>`).join("");$("#trophyButtons").innerHTML=TROPHIES.map(k=>`<button class="image-choice compact-count-choice" data-choice="trophy" data-value="${k}"><img src="${buttonImg("trophy:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.trophy[k]||0)===0?"is-zero":""}">${state.trophy[k]||0}個</b></span></button>`).join("");$("#endButtons").innerHTML=ENDS.map(k=>`<button class="image-choice compact-count-choice" data-choice="end" data-value="${k}"><img src="${buttonImg("end:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.end[k]||0)===0?"is-zero":""}">${state.end[k]||0}枚</b></span></button>`).join("");
- $("#voiceStats").innerHTML=pieStats(state.voice);$("#introStats").innerHTML=pieStats(state.intro);$("#trophyStats").innerHTML="";$("#endStats").innerHTML="";
+ const voiceWasOpen=$("#voiceStats .ratio-details")?.open||false;
+ const introWasOpen=$("#introStats .ratio-details")?.open||false;
+ $("#voiceButtons").innerHTML=VOICES.map(k=>`<button class="image-choice compact-count-choice bonus-count-choice" data-choice="voice" data-value="${k}"><img src="${buttonImg("voice:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.voice[k]||0)===0?"is-zero":""}">${state.voice[k]||0}回</b></span></button>`).join("");
+ $("#introButtons").innerHTML=INTROS.map(k=>`<button class="image-choice compact-count-choice bonus-count-choice" data-choice="intro" data-value="${k}"><img src="${buttonImg("intro:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.intro[k]||0)===0?"is-zero":""}">${state.intro[k]||0}回</b></span></button>`).join("");
+ $("#trophyButtons").innerHTML=TROPHIES.map(k=>`<button class="image-choice compact-count-choice" data-choice="trophy" data-value="${k}"><img src="${buttonImg("trophy:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.trophy[k]||0)===0?"is-zero":""}">${state.trophy[k]||0}個</b></span></button>`).join("");
+ $("#endButtons").innerHTML=ENDS.map(k=>`<button class="image-choice compact-count-choice" data-choice="end" data-value="${k}"><img src="${buttonImg("end:"+k)}"><span class="choice-footer"><span class="choice-label">${k}</span><b class="choice-count ${(state.end[k]||0)===0?"is-zero":""}">${state.end[k]||0}枚</b></span></button>`).join("");
+ $("#voiceStats").innerHTML=pieStats(state.voice,"ボイス",voiceWasOpen);$("#introStats").innerHTML=pieStats(state.intro,"キャラ紹介",introWasOpen);$("#trophyStats").innerHTML="";$("#endStats").innerHTML="";
 }
 function itemEarlySmallYoshi(){
  const positions=[];
