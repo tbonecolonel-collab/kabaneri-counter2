@@ -969,3 +969,29 @@ button.tap-pressed,.image-choice.tap-pressed,.file-btn.tap-pressed{
     white-space:nowrap !important;
   }
 }
+
+/* v77: hard-lock CZ result choices to one row on phones */
+#modalRoot .compact-result-buttons{
+  display:grid !important;
+  grid-template-columns:repeat(3,minmax(0,1fr)) !important;
+  gap:5px !important;
+}
+#modalRoot .compact-result-buttons > .image-result-button,
+#modalRoot .compact-result-buttons > .image-result-button:last-child{
+  grid-column:auto !important;
+  grid-row:auto !important;
+  width:auto !important;
+  min-width:0 !important;
+  max-width:100% !important;
+}
+@media(max-width:520px){
+  #modalRoot .compact-result-buttons > .image-result-button{
+    min-height:74px !important;
+    padding:3px !important;
+  }
+  #modalRoot .compact-result-buttons > .image-result-button img{
+    width:100% !important;
+    height:42px !important;
+    object-fit:contain !important;
+  }
+}
