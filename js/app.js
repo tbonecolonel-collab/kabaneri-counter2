@@ -312,19 +312,38 @@ function renderPredictions(){
 }
 
 function rinneLevelForCycle(cycle){let level=0;for(const x of state.sea.rinne){const cs=x.cycles||[];const applies=(x.type==="輪廻"||x.type==="六根清浄")?x.cycle===cycle:cs.includes(cycle);if(!applies)continue;if(x.type==="輪廻"||x.type==="六根清浄")level=Math.max(level,7);else if(x.type==="好機有")level=Math.max(level,5);else if(x.type==="兆し有")level=Math.max(level,4)}return level}
-function charCandidates(cycle=state.sea.cycle){const data=getSeaCycle(cycle).char;const scores={1:0,2:0,3:0,4:0,5:0,6:0,7:0};for(const [name,c] of Object.entries(data))for(const lv of SEA_CHAR_HINT[name]||[])scores[lv]+=c;const max=Math.max(...Object.values(scores));return max?Object.entries(scores).filter(([,v])=>v===max).map(([k])=>Number(k)):[]}
+function charEvidenceCounts(cycle=state.sea.cycle){
+ const data=getSeaCycle(cycle).char||{};
+ const counts={1:0,2:0,3:0,4:0,5:0,6:0,7:0};
+ for(const [name,rawCount] of Object.entries(data)){
+   const n=Math.max(0,Number(rawCount)||0);
+   for(const lv of SEA_CHAR_HINT[name]||[]) counts[lv]+=n;
+ }
+ return counts;
+}
+function charCandidates(cycle=state.sea.cycle){
+ const counts=charEvidenceCounts(cycle);
+ return Object.entries(counts).filter(([,v])=>v>0).map(([k])=>Number(k));
+}
 function stageCandidates(cycle=state.sea.cycle){const data=getSeaCycle(cycle).stage;const scores={1:0,2:0,3:0,4:0,5:0,6:0,7:0};for(const [name,c] of Object.entries(data)){const row=SEA_STAGE_HINT[name];if(row)for(let lv=1;lv<=7;lv++)scores[lv]+=row[lv]*c}const max=Math.max(...Object.values(scores));return max?Object.entries(scores).filter(([,v])=>v===max).map(([k])=>Number(k)):[]}
 function formatLvCandidates(cs){return cs.length?cs.map(x=>`Lv${x}`).join("・"):"不明"}
 function rinnePredictionForCycle(cycle){const r=rinneLevelForCycle(cycle);if(r===7)return {text:"Lv7濃厚",html:"Lv7濃厚"};if(r===5)return {text:"Lv5以上期待度UP",html:"Lv5以上期待度UP"};if(r===4)return {text:"Lv4以上期待度UP",html:"Lv4以上期待度UP"};return null}
 function combinedSeaPrediction(cycle){
  const rinne=rinnePredictionForCycle(cycle);
  if(rinne)return rinne;
- const cc=charCandidates(cycle),sc=stageCandidates(cycle);
- if(!cc.length&&!sc.length)return {text:"不明",html:"不明"};
- const union=[...new Set([...cc,...sc])].sort((a,b)=>a-b);
- const overlap=new Set(cc.filter(x=>sc.includes(x)));
+ const charCounts=charEvidenceCounts(cycle);
+ const sc=stageCandidates(cycle);
+ const evidence={1:charCounts[1]||0,2:charCounts[2]||0,3:charCounts[3]||0,4:charCounts[4]||0,5:charCounts[5]||0,6:charCounts[6]||0,7:charCounts[7]||0};
+ // ステージ推測は従来どおり、その周期で最も強いLv候補を1つの根拠として加算。
+ for(const lv of sc) evidence[lv]=(evidence[lv]||0)+1;
+ const union=Object.entries(evidence).filter(([,v])=>v>0).map(([k])=>Number(k)).sort((a,b)=>a-b);
+ if(!union.length)return {text:"不明",html:"不明"};
  const text=union.map(x=>`Lv${x}`).join("・");
- const html=union.map(x=>overlap.has(x)?`<span class="sea-overlap">Lv${x}</span>`:`<span>Lv${x}</span>`).join('<span class="sea-sep">・</span>');
+ const html=union.map(x=>{
+   const n=evidence[x]||0;
+   const cls=n>=3?"sea-overlap-strong":n>=2?"sea-overlap":"";
+   return cls?`<span class="${cls}">Lv${x}</span>`:`<span>Lv${x}</span>`;
+ }).join('<span class="sea-sep">・</span>');
  return {text,html};
 }
 function seaPredictForCycle(cycle){return combinedSeaPrediction(cycle).text}

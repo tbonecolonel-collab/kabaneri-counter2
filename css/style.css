@@ -107,7 +107,8 @@ body.records-page-active .bottom-actions{grid-template-columns:1fr 1fr}
 /* v22: 海門Lv キャラ＋ステージ統合表示 */
 .sea-prediction-values{display:inline-flex;flex-wrap:wrap;align-items:center;gap:2px}
 .sea-prediction-values .sea-sep{opacity:.55;font-weight:500}
-.sea-prediction-values .sea-overlap{color:var(--warn);background:color-mix(in srgb,var(--warn) 14%,transparent);border:1px solid color-mix(in srgb,var(--warn) 45%,transparent);border-radius:6px;padding:1px 5px;font-weight:950}
+.sea-prediction-values .sea-overlap{color:#ff9f1a;background:rgba(255,159,26,.15);border:1px solid rgba(255,159,26,.55);border-radius:6px;padding:1px 5px;font-weight:950}
+.sea-prediction-values .sea-overlap-strong{color:#ff3b30;background:rgba(255,59,48,.16);border:1px solid rgba(255,59,48,.62);border-radius:6px;padding:1px 5px;font-weight:950}
 
 .record-summary-sections{display:grid;gap:10px;margin:12px 0}.record-metric-card{background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px}.record-metric-card h3{margin:0 0 8px;font-size:14px}.record-note{margin-top:12px;background:var(--card2);border:1px solid var(--border);border-radius:12px;padding:10px}.record-note textarea{width:100%;min-height:110px;resize:vertical;margin:8px 0;padding:10px;border-radius:9px;border:1px solid var(--border);background:#11151b;color:var(--text);box-sizing:border-box}.record-note-save{width:100%}
 
