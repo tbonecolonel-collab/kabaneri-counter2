@@ -2,6 +2,7 @@ const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 function toast(t){const e=$("#toast");e.textContent=t;e.classList.add("show");setTimeout(()=>e.classList.remove("show"),1400)}
 function rate(a,b){return b?((a/b)*100).toFixed(1)+"%":"0.0%"}
 function totalObj(o){return Object.values(o||{}).reduce((a,b)=>a+(Number(b)||0),0)}
+function chanceFlashTotal(o){return (Number(o?.none)||0)+(Number(o?.flash)||0)}
 function chancePointsSnapshot(){return {...state.chancePts}}
 function img(key){return (state.ui.images&&state.ui.images[key])||IMAGE_KEYS[key]||"assets/placeholder.svg"}
 function buttonImg(key){const custom=state.ui.images&&state.ui.images[key];return custom||BONUS_IMAGE_KEYS[key]||"assets/placeholder.svg"}
@@ -65,7 +66,7 @@ function settingLabelForSnapshot(data){
 function recordSummaryHtml(d){
   d=d||{};
   const trophy=Object.entries(d.trophy||{}).filter(([,v])=>Number(v)>0).map(([k,v])=>`${esc(k)}：${Number(v)}個`).join(" / ")||"なし";
-  const chance=["無名","生駒","カバネ"].map(k=>{const x=d.chance?.[k]||{};const n=totalObj(x);return `<div class="stat-row"><span>${esc(k)}チャンス目発光率</span><b>${rate(Number(x.flash)||0,n)}</b><small>${Number(x.flash)||0}/${n}</small></div>`}).join("");
+  const chance=["無名","生駒","カバネ"].map(k=>{const x=d.chance?.[k]||{};const n=chanceFlashTotal(x);return `<div class="stat-row"><span>${esc(k)}チャンス目発光率</span><b>${rate(Number(x.flash)||0,n)}</b><small>${Number(x.flash)||0}/${n}</small></div>`}).join("");
   const cz=["無名","生駒"].map(k=>{const x=d.cz?.[k]||{};return `<div class="stat-row"><span>${esc(k)}CZ成功率</span><b>${rate(Number(x.success)||0,Number(x.win)||0)}</b><small>${Number(x.success)||0}/${Number(x.win)||0}</small></div>`}).join("");
   const cycles=[1,2,3,4,5,6].map(c=>{const x=d.cycles?.[c]||{bonus:0,total:0};return `<div class="stat-row"><span>${c}周期当選率</span><b>${rate(Number(x.bonus)||0,Number(x.total)||0)}</b><small>${Number(x.bonus)||0}/${Number(x.total)||0}</small></div>`}).join("");
   const voice=d.voice||{},voiceTotal=totalObj(voice);const voiceRows=Object.entries(voice).map(([k,v])=>`<div class="stat-row"><span>${esc(k)}</span><b>${Number(v)||0}回</b><small>${rate(Number(v)||0,voiceTotal)}</small></div>`).join("")||'<div class="muted">データなし</div>';
@@ -113,7 +114,7 @@ function renderRecordSession(rec){
 function renderChance(){
  const el=$("#chanceGrid");if(!el)return;
  const toneClass={"無名":"chance-mumei","生駒":"chance-ikoma","カバネ":"chance-kabane"};
- el.innerHTML=Object.entries(state.chance).map(([name,d])=>{const n=totalObj(d),pt=state.chancePts[name]||0;return `<div class="chance-card ${toneClass[name]||''}"><div class="chance-head chance-head-compact"><img src="${img(name)}"><div class="chance-title"><b>${name}チャンス目</b></div><div class="chance-metrics"><div class="chance-pt-box"><span>現在PT</span><strong>${pt}<small>pt</small></strong></div><div class="chance-rate-box"><span>発光率</span><strong>${rate(d.flash,n)}</strong><small>${d.flash}/${n}</small></div></div></div><div class="counter-grid"><button class="counter-btn" data-chance="${name}" data-key="none"><b>${d.none}</b><span>無発光 +1pt</span></button><button class="counter-btn" data-chance="${name}" data-key="flash"><b>${d.flash}</b><span>発光 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="high"><b>${d.high}</b><span>高確率 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="combo"><b>${d.combo}</b><span>高確複合 +30pt</span></button></div></div>`}).join("");
+ el.innerHTML=Object.entries(state.chance).map(([name,d])=>{const n=chanceFlashTotal(d),pt=state.chancePts[name]||0;return `<div class="chance-card ${toneClass[name]||''}"><div class="chance-head chance-head-compact"><img src="${img(name)}"><div class="chance-title"><b>${name}チャンス目</b></div><div class="chance-metrics"><div class="chance-pt-box"><span>現在PT</span><strong>${pt}<small>pt</small></strong></div><div class="chance-rate-box"><span>発光率</span><strong>${rate(d.flash,n)}</strong><small>${d.flash}/${n}</small></div></div></div><div class="counter-grid"><button class="counter-btn" data-chance="${name}" data-key="none"><b>${d.none}</b><span>無発光 +1pt</span></button><button class="counter-btn" data-chance="${name}" data-key="flash"><b>${d.flash}</b><span>発光 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="high"><b>${d.high}</b><span>高確率 +15pt</span></button><button class="counter-btn" data-chance="${name}" data-key="combo"><b>${d.combo}</b><span>高確複合 +30pt</span></button></div></div>`}).join("");
 }
 function czPointHistoryHtml(czName, pointKey){
  const items=(state.czHistory||[]).filter(x=>x.cz===czName).slice().reverse();
@@ -232,7 +233,7 @@ function czPtEvidence(){
 }
 function chanceRateStats(){
  return ["無名","生駒","カバネ"].map(name=>{
-  const d=state.chance[name]||{};const total=totalObj(d),flash=Number(d.flash)||0;const ratio=total?flash/total:null;
+  const d=state.chance[name]||{};const total=chanceFlashTotal(d),flash=Number(d.flash)||0;const ratio=total?flash/total:null;
   let judgement="データ不足",signal="none",level="参考";
   if(total){
    if(ratio>0.25){judgement="高設定確定";signal="high-confirm";level="確定"}
@@ -249,7 +250,7 @@ function chanceEvidence(){
  const rank={"参考":0,"期待度UP":1,"期待高":2,"濃厚":3,"確定":4};
  const level=valid.reduce((best,x)=>rank[x.level]>rank[best]?x.level:best,"参考");
  const text=stats.map(x=>x.total?`${x.name} ${rate(x.flash,x.total)}（${x.flash}/${x.total}）→ ${x.judgement}`:`${x.name} データ不足`).join(" / ");
- return {level,text:`チャンス目発光率（発光のみ）：${text}`,stats};
+ return {level,text:`チャンス目発光率（発光÷無発光+発光）：${text}`,stats};
 }
 function voiceEvidence(){const n=totalObj(state.voice);if(!n)return {level:"参考",text:"キャラボイス：データ不足"};const m=state.voice.男性/n,f=state.voice.女性/n,weak=state.voice.景之弱/n; if(state.voice.景之中>=3||state.voice.景之強>=3)return {level:"濃厚",text:"景之中/景之強が3回以上 → 高設定濃厚"};if(state.voice.特殊)return {level:"期待度UP",text:"特殊ボイス → 設定2以上示唆"};if(state.voice.無し)return {level:"期待高",text:"無しボイス → 設定5以上示唆"};if(m>.6)return {level:"期待高",text:"男性ボイス60%超 → 設定3 or 5期待高"};if(f>.6)return {level:"期待高",text:"女性ボイス60%超 → 偶数設定期待高"};if(weak>.16)return {level:"期待高",text:"景之弱16%超 → 高設定期待高"};return {level:"参考",text:`キャラボイス：男性${rate(state.voice.男性,n)} / 女性${rate(state.voice.女性,n)} / 景之弱${rate(state.voice.景之弱,n)}`}}
 function introEvidence(){const n=totalObj(state.intro);if(!n)return {level:"参考",text:"キャラ紹介：データ不足"};if(state.intro.美馬)return {level:"確定",text:"キャラ紹介・美馬 → 高設定確定"};const m=state.intro.男性/n,f=state.intro.女性/n;if(m>.6)return {level:"期待高",text:"キャラ紹介・男性60%超 → 設定3 or 5期待高"};if(f>.6)return {level:"期待高",text:"キャラ紹介・女性60%超 → 偶数設定期待高"};return {level:"参考",text:`キャラ紹介：男性${rate(state.intro.男性,n)} / 女性${rate(state.intro.女性,n)}`}}
@@ -382,6 +383,9 @@ function openCz(kind){
    // 駿城ボーナス消化分として総ゲーム数に21G加算。
    // 駿城⇒失敗時のCZ履歴gamesはhitGames（加算前）を維持する。
    state.totalGames+=21;
+   // 駿城⇒失敗は総ゲーム数だけ+21Gし、現在ゲーム数は駿城当選時のまま維持する。
+   // render() は totalGames-gameBase から現在Gを再計算するため、失敗時だけgameBaseも+21Gする。
+   if(!shunToEp) state.gameBase=(state.gameBase||0)+21;
    state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
 
    if(shunToEp){
@@ -452,6 +456,8 @@ function openPeriodCZ(){
    // 駿城ボーナス消化分として総ゲーム数に21G加算。
    // 駿城⇒失敗時のCZ履歴gamesはhitGames（加算前）を維持する。
    state.totalGames+=21;
+   // 周期CZでも駿城⇒失敗は総ゲーム数だけ+21G。現在ゲーム数は駿城当選時のまま維持する。
+   if(afterResult!=='EP') state.gameBase=(state.gameBase||0)+21;
    state.currentGames=Math.max(0,state.totalGames-(state.gameBase||0));
 
    // 周期CZのポイント履歴は駿城後の最終結果まで1つにまとめて表示する。
@@ -515,8 +521,20 @@ function openSettings(){modalBase(`<h2>画像・UI設定</h2><div class="modal-s
 function applyUI(){const light=state.ui.theme==="light";document.documentElement.style.setProperty("--bg",light?"#f4f5f7":"#0d0f13");document.documentElement.style.setProperty("--card",light?"#ffffff":"#171a20");document.documentElement.style.setProperty("--card2",light?"#e3e6eb":"#20242c");document.documentElement.style.setProperty("--text",light?"#111318":"#f4f5f7");document.documentElement.style.setProperty("--muted",light?"#535b67":"#9ba2ad");document.documentElement.style.setProperty("--warn",light?"#9a5a00":"#f0bd4f");document.documentElement.style.setProperty("--border",light?"#aeb5bf":(state.ui.borderColor||"#303640"));document.documentElement.style.setProperty("--accent",state.ui.accent||"#b44b34");document.documentElement.style.setProperty("--page-bg",`url("assets/backgrounds/${state.ui.background||"steel-dark"}.svg")`);document.body.classList.toggle("compact",state.ui.compact);document.body.classList.toggle("light-theme",light)}
 function changeCycle(n){if(state.sea.cycle===n)return;pushUndo();state.sea.cycle=n;getSeaCycle(n);saveState();render();toast(`${n}周期に変更しました`) }
 
+function lightHaptic(){
+  try{if(typeof navigator.vibrate==="function")navigator.vibrate(12)}catch{}
+}
+function updateStickyOffsets(){
+  const topbar=document.querySelector(".topbar");
+  const tabs=document.querySelector(".sticky-tabs");
+  const root=document.documentElement;
+  if(topbar)root.style.setProperty("--topbar-h",`${Math.ceil(topbar.getBoundingClientRect().height)}px`);
+  if(tabs)root.style.setProperty("--tabs-h",`${Math.ceil(tabs.getBoundingClientRect().height)}px`);
+}
+
 document.addEventListener("click",e=>{
  const b=e.target.closest?.("button");if(!b)return;
+ lightHaptic();
  try{
    if(b.dataset.page){$$('.tab').forEach(x=>x.classList.toggle('active',x===b));$$('.page').forEach(x=>x.classList.toggle('active',x.id==='page-'+b.dataset.page));document.body.classList.toggle('records-page-active',b.dataset.page==='records');if(b.dataset.page==='records')renderPastRecords();return}
    if(b.dataset.recordDate){b.closest('.record-date')?.classList.toggle('open');return}
@@ -597,9 +615,12 @@ document.addEventListener("change",e=>{
 // v44: iPhone/PWA用。アプリ本体をオフライン利用できるようService Workerを登録。
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
-    navigator.serviceWorker.register('./service-worker.js?v=45').catch(err => console.warn('service worker registration failed', err));
+    navigator.serviceWorker.register('./service-worker.js?v=64').catch(err => console.warn('service worker registration failed', err));
   });
 }
 render();
+updateStickyOffsets();
+window.addEventListener('resize',updateStickyOffsets);
+window.addEventListener('orientationchange',()=>setTimeout(updateStickyOffsets,120));
 loadStoredImages().then(images=>{state.ui.images=images||{};saveState();render()}).catch(err=>console.warn("image init failed",err));
 document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()});

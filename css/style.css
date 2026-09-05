@@ -563,3 +563,27 @@ body.light-theme .record-manual-wrap > span,
 body.light-theme .record-manual-select{
   color:#fff !important;
 }
+
+
+/* v64: mobile sticky controls + easier top actions */
+:root{--topbar-h:62px;--tabs-h:56px}
+@media(max-width:600px){
+  .topbar{top:env(safe-area-inset-top);z-index:40;min-height:58px}
+  .top-actions{position:relative;top:5px;align-self:center}
+  .top-actions .undo-btn{width:62px;height:44px;border-radius:13px;font-size:25px}
+  .top-actions .icon-btn:not(.undo-btn){width:50px;height:44px}
+  .tabs.sticky-tabs{top:calc(env(safe-area-inset-top) + var(--topbar-h));z-index:35}
+  .quick-dashboard{display:contents}
+  .common-games{margin-bottom:10px}
+  .common-bell{
+    position:sticky;
+    top:calc(env(safe-area-inset-top) + var(--topbar-h) + var(--tabs-h) + 4px);
+    z-index:34;
+    margin-bottom:10px;
+    background:rgba(23,26,32,.97);
+    backdrop-filter:blur(10px);
+    -webkit-backdrop-filter:blur(10px);
+    box-shadow:0 6px 16px rgba(0,0,0,.22);
+  }
+  body.light-theme .common-bell{background:rgba(255,255,255,.97)}
+}
