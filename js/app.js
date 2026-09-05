@@ -136,7 +136,7 @@ function renderCZ(){
 }
 function renderCycles(){ const el=$("#currentCycleLabel"); if(el) el.textContent=`${state.sea.cycle}周期`; }
 function renderItems(){
- $("#itemButtons").innerHTML=ITEMS.map(k=>`<button class="image-choice" data-item="${k}"><img src="${img(k)}"><span>${k}<br>${state.items[k]||0}個</span></button>`).join("");
+ $("#itemButtons").innerHTML=ITEMS.map(k=>`<button class="image-choice item-choice" data-item="${k}"><img src="${img(k)}"><span class="item-label">${k}</span><b class="item-count">${state.items[k]||0}個</b></button>`).join("");
  const small=ITEMS.filter(k=>state.items[k]).map(k=>`${k}：${state.items[k]}個（${ITEM_HINT[k]}）`);const early=itemEarlyInference();$("#itemPrediction").innerHTML=`<b>小吉1～5回目のタイミング（別判定）</b><br>${early.text}<hr>${small.length?small.join("<br>"):"通常のアイテム示唆：データ不足"}`;
 }
 function getSeaCycle(c){

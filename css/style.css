@@ -726,3 +726,117 @@ body.light-theme .record-manual-select{
   .pie-segment-label{max-width:62px;padding:2px 4px}
   .pie-segment-label b,.pie-segment-label small{font-size:8px}
 }
+
+
+/* v72: readable bonus labels and 5-column item lottery */
+#voiceButtons .bonus-count-choice,
+#introButtons .bonus-count-choice{
+  display:flex;
+  flex-direction:column;
+  align-items:stretch;
+  justify-content:flex-start;
+  overflow:hidden;
+}
+#voiceButtons .bonus-count-choice img,
+#introButtons .bonus-count-choice img{
+  flex:0 0 auto;
+  width:100%;
+}
+#voiceButtons .choice-footer,
+#introButtons .choice-footer{
+  display:flex!important;
+  flex-direction:column!important;
+  align-items:center!important;
+  justify-content:center!important;
+  gap:2px!important;
+  padding:5px 2px 6px!important;
+  min-width:0;
+}
+#voiceButtons .choice-label,
+#introButtons .choice-label{
+  display:block!important;
+  width:100%;
+  padding:0!important;
+  font-size:10px!important;
+  line-height:1.15!important;
+  text-align:center;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  font-weight:900!important;
+}
+#voiceButtons .choice-count,
+#introButtons .choice-count{
+  display:block;
+  margin:0 auto;
+  min-width:0!important;
+  padding:0!important;
+  border:0!important;
+  border-radius:0!important;
+  background:transparent!important;
+  box-shadow:none!important;
+  font-size:10px!important;
+  line-height:1.1!important;
+  color:var(--warn);
+  font-weight:950;
+}
+#voiceButtons .choice-count.is-zero,
+#introButtons .choice-count.is-zero{color:var(--muted)}
+
+#itemButtons{
+  grid-template-columns:repeat(5,minmax(0,1fr))!important;
+  gap:5px!important;
+}
+#itemButtons .item-choice{
+  min-width:0;
+  min-height:0!important;
+  padding:4px 3px 5px!important;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:flex-start;
+  overflow:hidden;
+}
+#itemButtons .item-choice img{
+  width:100%;
+  height:auto!important;
+  aspect-ratio:1 / 1;
+  object-fit:contain!important;
+  border-radius:7px;
+  flex:0 0 auto;
+}
+#itemButtons .item-label{
+  display:block;
+  width:100%;
+  padding:4px 0 1px!important;
+  font-size:clamp(6px,1.55vw,10px)!important;
+  line-height:1.05!important;
+  font-weight:900!important;
+  text-align:center;
+  white-space:nowrap!important;
+  overflow:visible!important;
+  text-overflow:clip!important;
+  letter-spacing:-0.04em;
+}
+#itemButtons .item-count{
+  display:block;
+  width:100%;
+  font-size:9px;
+  line-height:1.05;
+  text-align:center;
+  color:var(--text);
+  font-weight:900;
+}
+@media(max-width:520px){
+  #voiceButtons .bonus-count-choice{min-height:96px}
+  #voiceButtons .bonus-count-choice img{height:54px}
+  #introButtons .bonus-count-choice{min-height:116px}
+  #introButtons .bonus-count-choice img{height:76px}
+  #voiceButtons .choice-label{font-size:8.5px!important}
+  #introButtons .choice-label{font-size:10px!important}
+  #voiceButtons .choice-count,#introButtons .choice-count{font-size:9px!important}
+  #itemButtons{gap:4px!important}
+  #itemButtons .item-choice{padding:3px 2px 4px!important}
+  #itemButtons .item-label{font-size:clamp(5.4px,1.72vw,8.2px)!important;letter-spacing:-0.06em}
+  #itemButtons .item-count{font-size:8px}
+}
