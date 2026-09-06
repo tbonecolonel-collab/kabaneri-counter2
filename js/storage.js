@@ -6,13 +6,14 @@ const IMAGE_DB_NAME="kabaneri-counter-image-db";
 const IMAGE_STORE="images";
 const defaultState={
   totalGames:0,currentGames:0,gameBase:0,bell:{count:0},
-  chance:{無名:{none:0,flash:0,high:0,combo:0},生駒:{none:0,flash:0,high:0,combo:0},カバネ:{none:0,flash:0,high:0,combo:0}},
-  cz:{無名:{win:0,success:0},生駒:{win:0,success:0}},czHistory:[],chancePts:{無名:0,生駒:0,カバネ:0},
+  chance:{無名:{none:0,flash:0,high:0,combo:0},生駒:{none:0,flash:0,high:0,combo:0},カバネ:{none:0,high:0,ceiling:0}},
+  cz:{無名:{win:0,success:0},生駒:{win:0,success:0}},czHistory:[],chancePts:{無名:0,生駒:0,カバネ:0},chanceMax:{カバネ:false},
   bonuses:{駿城:{count:0,games:[]},EP:{count:0,games:[]}},
+  shunChance:{p1000:0,p3000:0},
   cycles:{1:{bonus:0,total:0},2:{bonus:0,total:0},3:{bonus:0,total:0},4:{bonus:0,total:0},5:{bonus:0,total:0},6:{bonus:0,total:0}},
   cycleBonuses:{1:{駿城:0,EP:0},2:{駿城:0,EP:0},3:{駿城:0,EP:0},4:{駿城:0,EP:0},5:{駿城:0,EP:0},6:{駿城:0,EP:0}},
   items:{},itemOrder:[],sea:{cycle:1,char:{},stage:{},rinne:[],cycles:{}},
-  ikoma:{3:{attack:0,avoid:0},2:{attack:0,avoid:0},1:{attack:0,avoid:0}},
+  ikoma:{attack:0,avoid:0},
   voice:{男性:0,女性:0,景之弱:0,景之中:0,景之強:0,無し:0,特殊:0},intro:{男性:0,女性:0,美馬:0},
   trophy:{銅:0,銀:0,金:0,キリン:0,虹:0},end:{甲鉄城メンバー:0,水着:0},seaHistory:[],history:[],lastBonusTotalGames:0,
   pastRecords:[],sessionStartedAt:new Date().toISOString(),
@@ -23,7 +24,7 @@ function mergeState(base,saved){if(!saved)return base;const out=clone(base);cons
 function compactRecordData(d){
   d=d||{};
   // 「履歴」と同じ内容に加え、保存時の推定設定を再計算できる集計値も保持する。
-  const keys=["totalGames","currentGames","gameBase","bell","chance","cz","czHistory","chancePts","bonuses","cycles","cycleBonuses","items","itemOrder","sea","ikoma","voice","intro","trophy","end","seaHistory","history","lastBonusTotalGames"];
+  const keys=["totalGames","currentGames","gameBase","bell","chance","cz","czHistory","chancePts","chanceMax","bonuses","shunChance","cycles","cycleBonuses","items","itemOrder","sea","ikoma","voice","intro","trophy","end","seaHistory","history","lastBonusTotalGames"];
   const out={}; for(const k of keys) out[k]=clone(d[k] ?? defaultState[k]);
   return out;
 }
@@ -70,6 +71,12 @@ function loadState(){
   }catch(err){console.warn("state load failed",err)}
   const out=loaded||clone(defaultState);
   if(out.sea&&!out.sea.cycles)out.sea.cycles={};
+  out.chanceMax=out.chanceMax||{カバネ:false};
+  out.shunChance={p1000:Number(out.shunChance?.p1000)||0,p3000:Number(out.shunChance?.p3000)||0};
+  out.chance=out.chance||clone(defaultState.chance);out.chance.カバネ=out.chance.カバネ||{};
+  if(out.chance.カバネ.ceiling==null)out.chance.カバネ.ceiling=0;
+  if(out.ikoma && (out.ikoma[1]||out.ikoma[2]||out.ikoma[3])){let attack=Number(out.ikoma.attack)||0,avoid=Number(out.ikoma.avoid)||0;for(const l of [1,2,3]){attack+=Number(out.ikoma[l]?.attack)||0;avoid+=Number(out.ikoma[l]?.avoid)||0}out.ikoma={attack,avoid};}
+  else out.ikoma={attack:Number(out.ikoma?.attack)||0,avoid:Number(out.ikoma?.avoid)||0};
   out.pastRecords=loadPastRecords();
   return out;
 }
